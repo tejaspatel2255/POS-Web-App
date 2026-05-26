@@ -19,7 +19,7 @@ export default function Sidebar() {
   ]
 
   return (
-    <aside className="w-64 bg-primary text-primary-foreground flex flex-col h-full glass-panel border-r-0 rounded-r-2xl shadow-xl z-20">
+    <aside className="w-64 bg-primary text-primary-foreground flex flex-col h-full border-r-0 rounded-r-2xl shadow-xl z-20">
       <div className="p-6 flex items-center justify-center border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="bg-white/20 p-2 rounded-full">
