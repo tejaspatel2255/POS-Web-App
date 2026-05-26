@@ -9,12 +9,22 @@ CREATE TABLE profiles (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Helper function to check if user is admin (prevents RLS recursion)
+CREATE OR REPLACE FUNCTION is_admin() 
+RETURNS boolean AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public profiles are viewable by authenticated users." ON profiles FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Allow users to insert their own profile during signup." ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY "Profiles can be updated by admins." ON profiles FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
+CREATE POLICY "Allow users to update their own profile." ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
+CREATE POLICY "Profiles can be managed by admins." ON profiles FOR ALL TO authenticated USING (is_admin());
 
 -- CATEGORIES
 CREATE TABLE categories (
@@ -26,9 +36,7 @@ CREATE TABLE categories (
 
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Categories viewable by authenticated users" ON categories FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Categories updatable by admins" ON categories FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
+CREATE POLICY "Categories updatable by admins" ON categories FOR ALL TO authenticated USING (is_admin());
 
 -- PRODUCTS
 CREATE TABLE products (
@@ -44,9 +52,7 @@ CREATE TABLE products (
 
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Products viewable by authenticated users" ON products FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Products updatable by admins" ON products FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
+CREATE POLICY "Products updatable by admins" ON products FOR ALL TO authenticated USING (is_admin());
 
 -- ORDERS
 CREATE TABLE orders (
@@ -70,7 +76,7 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Orders viewable by all authenticated users" ON orders FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Orders insertable by all authenticated users" ON orders FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "Orders updatable by admins or creator" ON orders FOR UPDATE TO authenticated USING (
-  cashier_id = auth.uid() OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  cashier_id = auth.uid() OR is_admin()
 );
 
 -- ORDER ITEMS
@@ -88,7 +94,7 @@ CREATE POLICY "Order items viewable by all authenticated users" ON order_items F
 CREATE POLICY "Order items insertable by all authenticated users" ON order_items FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "Order items updatable by admins or creator" ON order_items FOR UPDATE TO authenticated USING (
   EXISTS (SELECT 1 FROM orders WHERE id = order_items.order_id AND cashier_id = auth.uid()) OR 
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  is_admin()
 );
 
 -- SETTINGS
@@ -100,9 +106,7 @@ CREATE TABLE settings (
 
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Settings viewable by all authenticated users" ON settings FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Settings updatable by admins" ON settings FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
+CREATE POLICY "Settings updatable by admins" ON settings FOR ALL TO authenticated USING (is_admin());
 
 -- Create initial settings
 INSERT INTO settings (key, value) VALUES 
