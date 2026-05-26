@@ -11,6 +11,7 @@ CREATE TABLE profiles (
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public profiles are viewable by authenticated users." ON profiles FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow users to insert their own profile during signup." ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Profiles can be updated by admins." ON profiles FOR ALL TO authenticated USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
