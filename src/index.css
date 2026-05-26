@@ -1,0 +1,59 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  :root {
+    --background: 37 100% 97%; /* #fffbf5 cream */
+    --foreground: 174 76% 15%; /* dark teal for text */
+
+    --card: 0 0% 100%;
+    --card-foreground: 174 76% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 174 76% 15%;
+
+    --primary: 174 76% 26%; /* #0f766e deep teal */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 40 96% 50%; /* #f59e0b amber */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 37 30% 90%;
+    --muted-foreground: 174 20% 40%;
+
+    --accent: 40 96% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 174 20% 85%;
+    --input: 174 20% 85%;
+    --ring: 174 76% 26%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-dmsans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-poppins;
+  }
+}
+
+/* Glassmorphism and UI utilities */
+.glass-panel {
+  @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-sm;
+}
+.glass-card {
+  @apply bg-white/80 backdrop-blur-sm border border-white/50 shadow-sm hover:shadow-md transition-shadow duration-300;
+}
+.active-category {
+  @apply bg-primary text-primary-foreground shadow-md transform scale-[1.02] transition-all;
+}
