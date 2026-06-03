@@ -38,3 +38,7 @@ Thumbs.db
 .npm
 .cache
 *.tsbuildinfo
+
+# Scratch test files
+scratch/
+
