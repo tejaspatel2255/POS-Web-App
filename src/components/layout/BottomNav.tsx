@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { canManageMenu, canManageStaff } from '@/lib/permissions'
 
 export default function BottomNav() {
-  const { activeStore, activeMember } = useAuth()
+  const { activeMember } = useAuth()
   const role = activeMember?.role
 
   const navItems = [
@@ -21,25 +21,29 @@ export default function BottomNav() {
   const visibleItems = navItems.filter(item => item.show)
 
   return (
-    <nav className="bg-primary text-primary-foreground flex justify-around items-center h-16 border-t border-white/10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-20 pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-lg flex justify-around items-center h-16 border-t border-muted/50 shadow-[0_-8px_20px_rgba(0,0,0,0.06)] pb-safe pb-[env(safe-area-inset-bottom)] px-2">
       {visibleItems.map((item) => (
         <NavLink
           key={item.name}
           to={item.href}
           className={({ isActive }) =>
             cn(
-              "flex flex-col items-center justify-center w-full h-full space-y-1 transition-all duration-200",
-              isActive ? "text-secondary font-semibold" : "text-white/70 hover:text-white"
+              "flex flex-col items-center justify-center w-full h-full space-y-0.5 transition-all duration-200 min-h-[44px] relative py-1 text-muted-foreground",
+              isActive ? "text-primary font-bold" : "hover:text-foreground"
             )
           }
-          style={({ isActive }) => 
-            isActive && activeStore?.theme_color 
-              ? { color: activeStore.theme_color === '#0f766e' ? undefined : '#f59e0b' } // fallback or highlight matching theme
-              : {}
-          }
         >
-          <item.icon className="w-5 h-5" />
-          <span className="text-[10px] font-medium tracking-wide">{item.name}</span>
+          {({ isActive }) => (
+            <>
+              <item.icon className={cn("w-5 h-5 flex-shrink-0 transition-transform duration-200", isActive && "scale-110")} />
+              <span className="text-[10px] font-semibold tracking-wide hidden min-[360px]:inline">
+                {item.name}
+              </span>
+              {isActive && (
+                <span className="absolute bottom-0 w-8 h-0.5 bg-primary rounded-full" />
+              )}
+            </>
+          )}
         </NavLink>
       ))}
     </nav>

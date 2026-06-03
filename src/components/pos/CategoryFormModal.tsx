@@ -90,51 +90,55 @@ export default function CategoryFormModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-muted overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl w-full h-full sm:h-auto sm:max-w-md border border-muted overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh] pb-safe">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-5 border-b">
-          <h2 className="text-lg font-bold font-poppins text-foreground">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b flex-shrink-0">
+          <h2 className="text-sm sm:text-lg font-bold font-poppins text-foreground">
             {category ? 'Edit Category' : 'Add New Category'}
           </h2>
           <button 
+            type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-muted-foreground hover:bg-muted transition-colors"
+            className="p-2 rounded-full text-muted-foreground hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit(onSubmit as any)} className="p-5 space-y-4 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit(onSubmit as any)} className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 text-sm sm:text-xs">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-muted-foreground uppercase">Category Name *</label>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase">Category Name *</label>
             <Input
               placeholder="e.g. Desserts, Beverages"
               {...register('name')}
               disabled={loading}
+              className="h-11 sm:h-10 text-sm sm:text-xs"
             />
             {errors.name && <p className="text-xs font-semibold text-destructive">{(errors.name as any)?.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Icon (Emoji) *</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Icon (Emoji) *</label>
               <Input
                 placeholder="e.g. 🍦, 🍔, 🥤"
                 {...register('icon')}
                 disabled={loading}
+                className="h-11 sm:h-10 text-sm sm:text-xs"
               />
               {errors.icon && <p className="text-xs font-semibold text-destructive">{(errors.icon as any)?.message}</p>}
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Sort Order</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Sort Order</label>
               <Input
                 type="number"
                 {...register('sort_order')}
                 disabled={loading}
+                className="h-11 sm:h-10 text-sm sm:text-xs"
               />
               {errors.sort_order && <p className="text-xs font-semibold text-destructive">{(errors.sort_order as any)?.message}</p>}
             </div>
@@ -142,14 +146,14 @@ export default function CategoryFormModal({
 
           {/* Color Picker Swatches */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-muted-foreground uppercase block">Branding Color *</label>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase block">Branding Color *</label>
             <div className="grid grid-cols-5 gap-2">
               {COLOR_SWATCHES.map((color) => (
                 <button
-                   key={color}
+                  key={color}
                   type="button"
                   onClick={() => setValue('color', color)}
-                  className={`h-8 rounded-lg border-2 transition-all ${
+                  className={`h-11 sm:h-8 rounded-lg border-2 transition-all min-h-[44px] sm:min-h-0 ${
                     selectedColor === color
                       ? 'border-foreground scale-105 shadow-sm'
                       : 'border-transparent hover:scale-102'
@@ -163,32 +167,33 @@ export default function CategoryFormModal({
           </div>
 
           {/* Active status toggle */}
-          <div className="flex items-center justify-between p-3 rounded-xl border bg-muted/30">
+          <div className="flex items-center justify-between p-3 rounded-xl border bg-muted/30 min-h-[44px]">
             <div>
               <p className="text-sm font-semibold text-foreground">Active Status</p>
               <p className="text-xs text-muted-foreground">Show this category on the POS billing screen</p>
             </div>
             <input
               type="checkbox"
-              className="w-5 h-5 accent-primary cursor-pointer"
+              className="w-5 h-5 accent-primary cursor-pointer min-w-[44px] min-h-[44px]"
               {...register('is_active')}
               disabled={loading}
             />
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex justify-end gap-3 pt-4 border-t flex-shrink-0">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={loading}
+              className="h-11 sm:h-10 min-h-[44px] sm:min-h-0 px-4 font-semibold text-sm sm:text-xs"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="bg-primary hover:bg-primary/90"
+              className="bg-primary hover:bg-primary/90 h-11 sm:h-10 min-h-[44px] sm:min-h-0 px-4 font-semibold text-sm sm:text-xs"
               disabled={loading}
             >
               {loading ? 'Saving...' : category ? 'Save Changes' : 'Create Category'}

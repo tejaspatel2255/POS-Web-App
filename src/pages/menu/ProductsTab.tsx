@@ -160,19 +160,19 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
   }
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-20 md:pb-0">
       
       {/* Filtering Header Panel */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white/40 p-4 rounded-xl border border-white/50 shadow-sm items-center">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white/40 p-4 rounded-xl border border-white/50 shadow-sm items-center">
         
         {/* Search Bar */}
         <div className="relative">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-3.5 sm:top-3" />
           <Input
             placeholder="Search products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-10"
+            className="pl-9 h-11 sm:h-10"
           />
         </div>
 
@@ -180,7 +180,7 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
         <div className="relative flex items-center gap-2">
           <Filter className="w-4 h-4 text-muted-foreground flex-shrink-0" />
           <select
-            className="w-full h-10 px-3 rounded-lg border border-input bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+            className="w-full h-11 sm:h-10 px-3 rounded-lg border border-input bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
             value={selectedCategoryFilter}
             onChange={(e) => setSelectedCategoryFilter(e.target.value)}
           >
@@ -195,7 +195,7 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
 
         {/* Add Product Button */}
         <div className="flex justify-end">
-          <Button onClick={handleOpenAddModal} className="bg-primary hover:bg-primary/90 flex items-center gap-2 w-full sm:w-auto justify-center">
+          <Button onClick={handleOpenAddModal} className="hidden sm:flex bg-primary hover:bg-primary/90 items-center gap-2 w-full sm:w-auto justify-center min-h-[40px]">
             <Plus className="w-4 h-4" />
             Add Product
           </Button>
@@ -204,16 +204,16 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
 
       {/* Bulk Action Panel (Renders only when item is selected) */}
       {selectedIds.size > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl border border-primary/20 bg-primary/5 text-primary animate-in slide-in-from-top-1 duration-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl border border-primary/20 bg-primary/5 text-primary animate-in slide-in-from-top-1 duration-200">
           <span className="text-sm font-bold flex items-center gap-2">
             <CheckSquare className="w-5 h-5" />
             Selected {selectedIds.size} product{selectedIds.size > 1 ? 's' : ''}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => handleBulkToggleAvailability(true)}
               variant="outline"
-              className="border-primary/20 hover:bg-primary/10 text-xs h-9 font-bold"
+              className="border-primary/20 hover:bg-primary/10 text-xs h-10 sm:h-9 font-bold flex-1 sm:flex-initial"
               disabled={isBulkUpdating}
             >
               Mark Available
@@ -221,7 +221,7 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
             <Button
               onClick={() => handleBulkToggleAvailability(false)}
               variant="outline"
-              className="border-primary/20 hover:bg-primary/10 text-xs h-9 font-bold"
+              className="border-primary/20 hover:bg-primary/10 text-xs h-10 sm:h-9 font-bold flex-1 sm:flex-initial"
               disabled={isBulkUpdating}
             >
               Mark Unavailable
@@ -229,10 +229,10 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
             <Button
               onClick={() => setSelectedIds(new Set())}
               variant="ghost"
-              className="text-xs h-9 hover:bg-transparent"
+              className="text-xs h-10 sm:h-9 hover:bg-transparent min-w-[44px]"
               disabled={isBulkUpdating}
             >
-              Clear Selection
+              Clear
             </Button>
           </div>
         </div>
@@ -252,7 +252,7 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
           <div className="flex items-center gap-2 pl-2">
             <button
               onClick={() => handleSelectAllFiltered(filteredProducts)}
-              className="text-xs text-muted-foreground hover:text-foreground font-semibold flex items-center gap-1.5"
+              className="text-xs text-muted-foreground hover:text-foreground font-semibold flex items-center gap-1.5 min-h-[44px]"
             >
               {filteredProducts.every((p) => selectedIds.has(p.id)) ? (
                 <CheckSquare className="w-4 h-4 text-primary" />
@@ -263,13 +263,13 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
             </button>
           </div>
 
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {/* Cards Grid: 2 columns on mobile, 3 columns on tablet/md, 4 on lg */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
             {filteredProducts.map((p) => {
               const categoryObj = categories.find((c) => c.id === p.category_id)
               const categoryBadge = categoryObj ? (
                 <span
-                  className="text-[9px] px-2 py-0.5 rounded border font-semibold shadow-inner uppercase tracking-wider"
+                  className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded border font-semibold shadow-inner uppercase tracking-wider truncate max-w-[80px] sm:max-w-none"
                   style={{
                     backgroundColor: `${categoryObj.color}15`,
                     color: categoryObj.color,
@@ -279,7 +279,7 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
                   {categoryObj.icon} {categoryObj.name}
                 </span>
               ) : (
-                <span className="text-[9px] px-2 py-0.5 rounded border border-muted bg-muted/20 text-muted-foreground font-semibold uppercase tracking-wider">
+                <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded border border-muted bg-muted/20 text-muted-foreground font-semibold uppercase tracking-wider">
                   Unassigned
                 </span>
               )
@@ -294,7 +294,7 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
                   {/* Select Checkbox Overlays */}
                   <button
                     onClick={() => handleSelectProduct(p.id)}
-                    className="absolute top-3 left-3 z-10 w-6 h-6 rounded-md bg-white border border-muted flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200"
+                    className="absolute top-2 left-2 z-10 w-8 h-8 rounded-md bg-white border border-muted flex items-center justify-center shadow-sm opacity-100 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200"
                   >
                     {selectedIds.has(p.id) ? (
                       <CheckSquare className="w-4 h-4 text-primary" />
@@ -303,9 +303,9 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
                     )}
                   </button>
 
-                  <div className="p-4 space-y-3">
+                  <div className="p-2 sm:p-4 space-y-2 sm:space-y-3">
                     {/* Image / Placeholder */}
-                    <div className="h-32 border border-muted/20 rounded-xl overflow-hidden bg-muted/10 relative flex items-center justify-center">
+                    <div className="h-20 sm:h-32 border border-muted/20 rounded-xl overflow-hidden bg-muted/10 relative flex items-center justify-center">
                       {p.image_url ? (
                         <img
                           src={p.image_url}
@@ -313,61 +313,63 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
-                        <span className="text-4xl filter grayscale">🍲</span>
+                        <span className="text-3xl sm:text-4xl filter grayscale">🍲</span>
                       )}
                       
                       {!p.is_available && (
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-white font-bold text-xs">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-white font-bold text-[9px] sm:text-xs">
                           OUT OF STOCK
                         </div>
                       )}
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
                         {categoryBadge}
-                        <span className="text-[10px] text-muted-foreground font-semibold">
-                          Unit: {p.unit}
-                        </span>
+                        {p.unit && (
+                          <span className="text-[8px] sm:text-[10px] text-muted-foreground font-semibold">
+                            Unit: {p.unit}
+                          </span>
+                        )}
                       </div>
-                      <h4 className="font-bold text-foreground font-poppins truncate" title={p.name}>
+                      <h4 className="font-bold text-foreground font-poppins text-xs sm:text-sm truncate" title={p.name}>
                         {p.name}
                       </h4>
-                      <p className="text-lg font-extrabold text-primary font-poppins">
+                      <p className="text-sm sm:text-lg font-extrabold text-primary font-poppins">
                         {formatCurrency(p.price, currencySymbol)}
                       </p>
                     </div>
                   </div>
 
                   {/* Actions Panel */}
-                  <div className="px-4 py-3 bg-muted/20 border-t border-muted/30 flex items-center justify-between">
+                  <div className="p-2 sm:px-4 sm:py-3 bg-muted/20 border-t border-muted/30 flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
                     {/* Availability Switch */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 min-h-[44px]">
                       <input
                         type="checkbox"
                         checked={p.is_available}
                         onChange={() => handleToggleAvailable(p)}
-                        className="w-4 h-4 cursor-pointer accent-primary"
+                        className="w-5 h-5 cursor-pointer accent-primary"
                         id={`avail-${p.id}`}
                       />
-                      <label htmlFor={`avail-${p.id}`} className="text-[10px] font-bold text-muted-foreground uppercase cursor-pointer select-none">
+                      <label htmlFor={`avail-${p.id}`} className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase cursor-pointer select-none">
                         {p.is_available ? 'In Stock' : 'Out Stock'}
                       </label>
                     </div>
 
                     {/* Edit/Delete */}
-                    <div className="flex gap-1">
+                    <div className="flex gap-1.5">
                       <button
                         onClick={() => handleOpenEditModal(p)}
-                        className="p-1 rounded bg-white hover:bg-primary/10 text-primary border border-muted/30 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded bg-white hover:bg-primary/10 text-primary border border-muted/30 transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
+                        <Edit3 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                       </button>
                       <button
                         onClick={() => setDeleteConfirmProduct(p)}
-                        className="p-1 rounded bg-white hover:bg-destructive/10 text-destructive border border-muted/30 transition-colors"
+                        className="p-2.5 sm:p-1.5 rounded bg-white hover:bg-destructive/10 text-destructive border border-muted/30 transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -377,6 +379,17 @@ export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProp
           </div>
         </div>
       )}
+
+      {/* Floating Add Product Button for Mobile Only */}
+      <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/90 to-background/0 z-40">
+        <Button
+          onClick={handleOpenAddModal}
+          className="w-full bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 font-bold shadow-lg min-h-[48px] text-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Add Product
+        </Button>
+      </div>
 
       {/* Product Form Modal */}
       <ProductFormModal

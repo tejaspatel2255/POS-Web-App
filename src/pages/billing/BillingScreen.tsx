@@ -14,6 +14,7 @@ import CartPanel from '@/components/pos/CartPanel'
 import InvoiceModal from '@/components/pos/InvoiceModal'
 import EmptyState from '@/components/shared/EmptyState'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
+import { formatCurrency } from '@/lib/formatCurrency'
 import type { Product } from '@/types'
 
 const ORDER_TYPES = [
@@ -187,11 +188,19 @@ export default function BillingScreen() {
     }
   }
 
+  // Calculate live estimate total for floating mobile cart button
+  const currentSubtotal = getSubtotal()
+  const currentDiscount = getTotalDiscount()
+  const taxRate = activeStore.tax_rate || 0
+  const taxable = Math.max(0, currentSubtotal - currentDiscount)
+  const tax = parseFloat((taxable * (taxRate / 100)).toFixed(2))
+  const estimateTotal = taxable + tax + parcelCharges
+
   return (
-    <div className="flex flex-col h-[calc(100vh-8.5rem)] lg:h-[calc(100vh-6.5rem)] overflow-hidden space-y-4 relative select-none">
+    <div className="flex flex-col h-[calc(100vh-8.5rem)] lg:h-[calc(100vh-6.5rem)] overflow-hidden space-y-4 relative select-none pb-12 md:pb-0">
       
       {/* Top Bar: Order Type Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 bg-white/40 p-2 rounded-xl border border-white/50 shadow-sm flex-shrink-0 scrollbar-none">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 bg-white/40 p-2 rounded-xl border border-white/50 shadow-sm flex-shrink-0 scrollbar-none whitespace-nowrap flex-nowrap w-full">
         <span className="text-[10px] uppercase font-bold text-muted-foreground px-2 flex-shrink-0">Order Type:</span>
         {visibleOrderTypes.map((type) => {
           const isSelected = selectedOrderType === type.id
@@ -199,7 +208,7 @@ export default function BillingScreen() {
             <button
               key={type.id}
               onClick={() => setSelectedOrderType(type.id)}
-              className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold font-poppins border transition-all flex items-center gap-1.5"
+              className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold font-poppins border transition-all flex items-center gap-1.5 min-h-[44px]"
               style={
                 isSelected
                   ? { backgroundColor: activeStore.theme_color, color: '#ffffff', borderColor: activeStore.theme_color }
@@ -234,11 +243,6 @@ export default function BillingScreen() {
             />
           </div>
 
-          {/* Mobile view of Category Panel */}
-          <div className="lg:hidden fixed bottom-18 left-4 z-20 flex gap-2">
-            {/* We will let category selection stay at the left sidebar or at the top of products grid. Let's make it inline on top for mobile! */}
-          </div>
-
           {/* Center Column: Product Browser Catalog & Mobile Category list */}
           <div className="flex-1 flex flex-col space-y-3 min-w-0">
             {/* Mobile-only horizontal category slider */}
@@ -268,14 +272,26 @@ export default function BillingScreen() {
 
           {/* Mobile Floating Cart Summary Drawer Trigger Button */}
           {items.length > 0 && (
-            <button
-              onClick={() => setIsMobileCartOpen(true)}
-              className="lg:hidden fixed bottom-20 right-4 z-30 shadow-xl text-white px-5 py-3 rounded-full flex items-center gap-2 font-bold animate-bounce transition-all"
-              style={{ backgroundColor: activeStore.theme_color }}
-            >
-              <ShoppingBag className="w-5 h-5" />
-              <span>Cart ({items.reduce((sum, i) => sum + i.quantity, 0)})</span>
-            </button>
+            <div className="lg:hidden fixed bottom-[76px] left-4 right-4 z-30 px-1">
+              <button
+                onClick={() => setIsMobileCartOpen(true)}
+                className="w-full shadow-lg text-white px-4 py-3 rounded-xl flex items-center justify-between font-bold transition-all min-h-[48px] hover:scale-[1.02] active:scale-95 animate-in fade-in slide-in-from-bottom duration-250"
+                style={{ backgroundColor: activeStore.theme_color }}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <ShoppingBag className="w-5 h-5" />
+                    <span className="absolute -top-2 -right-2 bg-white text-primary text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center border shadow-sm">
+                      {items.reduce((sum, i) => sum + i.quantity, 0)}
+                    </span>
+                  </div>
+                  <span className="text-xs uppercase tracking-wider ml-1">View Checkout Cart</span>
+                </div>
+                <div className="text-sm font-extrabold">
+                  {formatCurrency(estimateTotal, activeStore.currency_symbol)}
+                </div>
+              </button>
+            </div>
           )}
 
           {/* Mobile Cart Overlay Slide-up Sheet */}
@@ -287,9 +303,12 @@ export default function BillingScreen() {
                 onClick={() => setIsMobileCartOpen(false)}
               />
               {/* Slide-up Container */}
-              <div className="bg-white rounded-t-3xl relative z-50 p-4 max-h-[85vh] overflow-hidden flex flex-col border-t shadow-2xl animate-in slide-in-from-bottom duration-250">
-                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" onClick={() => setIsMobileCartOpen(false)} />
-                <div className="overflow-y-auto flex-1 pb-4">
+              <div className="bg-white rounded-t-3xl relative z-50 p-4 h-[85vh] overflow-hidden flex flex-col border-t shadow-2xl animate-in slide-in-from-bottom duration-250">
+                <div 
+                  className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 cursor-grab active:cursor-grabbing flex-shrink-0 min-h-[6px]" 
+                  onClick={() => setIsMobileCartOpen(false)} 
+                />
+                <div className="overflow-y-auto flex-1 pb-safe pb-[env(safe-area-inset-bottom)] scroll-smooth">
                   <CartPanel
                     activeStore={activeStore}
                     onCheckout={handleCheckout}
