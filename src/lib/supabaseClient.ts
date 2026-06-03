@@ -1,3 +1,5 @@
+// File Path: d:/Projects/Web/Universal POS/src/lib/supabaseClient.ts
+
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../types/supabase'
 

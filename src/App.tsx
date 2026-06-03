@@ -1,33 +1,27 @@
+// File Path: d:/Projects/Web/Universal POS/src/App.tsx
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { AuthProvider } from './contexts/AuthContext'
 
 // Layout
-import AppLayout from './components/layout/AppLayout'
+import AppShell from './components/layout/AppShell'
+import { ProtectedRoute } from './components/layout/ProtectedRoute'
 
 // Pages
-import Auth from './pages/Auth'
-import Dashboard from './pages/Dashboard'
-import Billing from './pages/Billing'
-import MenuManagement from './pages/MenuManagement'
-import OrderHistory from './pages/OrderHistory'
-import Reports from './pages/Reports'
-import Settings from './pages/Settings'
+import LoginPage from './pages/auth/LoginPage'
+import RegisterPage from './pages/auth/RegisterPage'
+import CreateStorePage from './pages/auth/CreateStorePage'
+import SelectStorePage from './pages/auth/SelectStorePage'
+
+import Dashboard from './pages/dashboard/Dashboard'
+import Billing from './pages/billing/BillingScreen'
+import MenuManagement from './pages/menu/MenuManagement'
+import OrderHistory from './pages/orders/OrderHistory'
+import Reports from './pages/reports/Reports'
+import Settings from './pages/settings/Settings'
 
 const queryClient = new QueryClient()
-
-function ProtectedRoute({ children, requireAdmin = false }: { children: React.ReactNode, requireAdmin?: boolean }) {
-  const { user, profile, loading } = useAuth()
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background text-primary">Loading...</div>
-  if (!user) return <Navigate to="/login" />
-  
-  if (requireAdmin && profile?.role !== 'admin') {
-    return <Navigate to="/" />
-  }
-
-  return <>{children}</>
-}
 
 export default function App() {
   return (
@@ -35,18 +29,72 @@ export default function App() {
       <AuthProvider>
         <Router>
           <Routes>
-            <Route path="/login" element={<Auth />} />
+            {/* Public Authentication Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
             
-            <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+            {/* Store Selection and Creation (Required: Logged In, Allowed: No Active Store) */}
+            <Route 
+              path="/select-store" 
+              element={
+                <ProtectedRoute>
+                  <SelectStorePage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/create-store" 
+              element={
+                <ProtectedRoute>
+                  <CreateStorePage />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Protected Workspace POS Routes */}
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <AppShell />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<Dashboard />} />
               <Route path="billing" element={<Billing />} />
               <Route path="history" element={<OrderHistory />} />
               
-              {/* Admin only routes */}
-              <Route path="menu" element={<ProtectedRoute requireAdmin><MenuManagement /></ProtectedRoute>} />
-              <Route path="reports" element={<ProtectedRoute requireAdmin><Reports /></ProtectedRoute>} />
-              <Route path="settings" element={<ProtectedRoute requireAdmin><Settings /></ProtectedRoute>} />
+              {/* Admin & Owner level routes */}
+              <Route 
+                path="menu" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <MenuManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="reports" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <Reports />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Owner only routes */}
+              <Route 
+                path="settings" 
+                element={
+                  <ProtectedRoute requiredRole="owner">
+                    <Settings />
+                  </ProtectedRoute>
+                } 
+              />
             </Route>
+
+            {/* Fallback Catch-all Route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
       </AuthProvider>

@@ -1,58 +1,101 @@
-import { useQuery } from '@tanstack/react-query'
+// File Path: d:/Projects/Web/Universal POS/src/hooks/useProducts.ts
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
-import type { Database } from '../types/supabase'
+import type { Product } from '../types'
 
-type Category = Database['public']['Tables']['categories']['Row']
-type Product = Database['public']['Tables']['products']['Row']
-
-export function useCategories() {
+export function useProducts(storeId: string | null | undefined, categoryId?: string | null) {
   return useQuery({
-    queryKey: ['categories'],
+    queryKey: ['products', storeId, categoryId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('categories')
+      if (!storeId) return []
+      let query = (supabase
+        .from('products') as any)
         .select('*')
+        .eq('store_id', storeId)
         .order('sort_order', { ascending: true })
-      
-      if (error) throw error
-      return data as Category[]
-    }
-  })
-}
 
-export function useProducts(categoryId?: string) {
-  return useQuery({
-    queryKey: ['products', categoryId],
-    queryFn: async () => {
-      let query = supabase
-        .from('products')
-        .select('*')
-        .eq('is_available', true)
-        .order('sort_order', { ascending: true })
-        
       if (categoryId) {
         query = query.eq('category_id', categoryId)
       }
-      
+
       const { data, error } = await query
       if (error) throw error
       return data as Product[]
+    },
+    enabled: !!storeId,
+  })
+}
+
+export function useCreateProduct() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (newProduct: Omit<Product, 'id' | 'created_at'>) => {
+      const { data, error } = await (supabase
+        .from('products') as any)
+        .insert(newProduct)
+        .select()
+        .single()
+      if (error) throw error
+      return data as Product
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['products', data.store_id] })
     }
   })
 }
 
-export function useAllProducts() {
-  return useQuery({
-    queryKey: ['all-products'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*, categories(name)')
-        .order('category_id', { ascending: true })
-        .order('sort_order', { ascending: true })
-      
+export function useUpdateProduct() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, store_id: _store_id, changes }: { id: string; store_id: string; changes: Partial<Product> }) => {
+      const { data, error } = await (supabase
+        .from('products') as any)
+        .update(changes)
+        .eq('id', id)
+        .select()
+        .single()
       if (error) throw error
-      return data
+      return data as Product
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['products', data.store_id] })
+    }
+  })
+}
+
+export function useDeleteProduct() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, store_id }: { id: string; store_id: string }) => {
+      const { error } = await (supabase
+        .from('products') as any)
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+      return { id, store_id }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['products', data.store_id] })
+    }
+  })
+}
+
+export function useToggleAvailability() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, store_id: _store_id, is_available }: { id: string; store_id: string; is_available: boolean }) => {
+      const { data, error } = await (supabase
+        .from('products') as any)
+        .update({ is_available })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data as Product
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['products', data.store_id] })
     }
   })
 }

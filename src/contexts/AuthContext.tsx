@@ -1,14 +1,20 @@
+// File Path: d:/Projects/Web/Universal POS/src/contexts/AuthContext.tsx
+
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
-import type { Database } from '../types/supabase'
-
-type Profile = Database['public']['Tables']['profiles']['Row']
+import { useAuthStore } from '../store/authStore'
+import { useAuth as useAuthHook } from '../hooks/useAuth'
 
 interface AuthContextType {
   session: Session | null
   user: User | null
-  profile: Profile | null
+  profile: {
+    id: string
+    role: 'owner' | 'admin' | 'cashier'
+    full_name: string | null
+    created_at: string
+  } | null
   loading: boolean
   signOut: () => Promise<void>
 }
@@ -22,60 +28,37 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { user, activeMember, loading: authLoading } = useAuthHook()
   const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
-      } else {
-        setLoading(false)
-      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
-      } else {
-        setProfile(null)
-        setLoading(false)
-      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-      
-      if (!error && data) {
-        setProfile(data)
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error)
-    } finally {
-      setLoading(false)
-    }
+  const signOut = async () => {
+    const { logout } = useAuthStore.getState()
+    await supabase.auth.signOut()
+    logout()
   }
 
-  const signOut = async () => {
-    await supabase.auth.signOut()
-  }
+  // Map the new activeMember object to the legacy profile structure
+  const profile = activeMember ? {
+    id: activeMember.id,
+    role: activeMember.role,
+    full_name: activeMember.full_name,
+    created_at: activeMember.created_at,
+  } : null
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, loading: authLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   )
