@@ -46,11 +46,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          // Clone response and cache it
-          const responseCopy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseCopy);
-          });
+          // Clone response and cache it (GET requests only)
+          if (event.request.method === 'GET' && response.status === 200) {
+            const responseCopy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseCopy);
+            });
+          }
           return response;
         })
         .catch(() => {
@@ -68,8 +70,8 @@ self.addEventListener('fetch', (event) => {
         return cachedResponse;
       }
       return fetch(event.request).then((response) => {
-        // Cache newly fetched assets
-        if (response.status === 200) {
+        // Cache newly fetched assets (GET requests only)
+        if (event.request.method === 'GET' && response.status === 200) {
           const responseCopy = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseCopy);
