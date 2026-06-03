@@ -120,7 +120,7 @@ export default function CreateStorePage() {
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-foreground">Store Name *</label>
                 <Input
-                  placeholder="e.g. Savaliya Ice Cream"
+                  placeholder="e.g. Universal Retail"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required

@@ -40,7 +40,7 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        savaliya: {
+        universal: {
           teal: "#0f766e",
           amber: "#f59e0b",
           cream: "#fffbf5"

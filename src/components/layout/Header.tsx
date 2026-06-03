@@ -8,8 +8,8 @@ export default function Header() {
   return (
     <header className="h-16 bg-white/70 backdrop-blur-md border-b flex items-center justify-between px-4 lg:px-8 shadow-sm z-10 sticky top-0">
       <div className="flex items-center gap-2 md:hidden">
-        <span className="text-2xl">🍦</span>
-        <h1 className="text-xl font-bold font-poppins text-primary">Savaliya</h1>
+        <img src="/logo.png" alt="Universal POS Logo" className="w-8 h-8 rounded-lg object-contain" />
+        <h1 className="text-xl font-bold font-poppins text-primary">Universal POS</h1>
       </div>
       
       <div className="hidden md:block">
