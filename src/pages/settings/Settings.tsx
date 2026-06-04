@@ -1,249 +1,198 @@
-// File Path: d:/Projects/Web/Universal POS/src/pages/settings/Settings.tsx
+// src/pages/settings/Settings.tsx
+import React, { useState, useEffect } from 'react'
+import { useAuthStore } from '../../store/authStore'
+import { supabase } from '../../lib/supabase'
+import { Store, StoreMember } from '../../types'
+import { toast } from '../../components/shared/Toast'
+import { canManageStaff } from '../../lib/permissions'
+import {
+  Store as StoreIcon,
+  Sliders,
+  Users,
+  Plus,
+  Mail,
+  Shield,
+  ToggleLeft,
+  ToggleRight,
+  Loader2,
+  AlertCircle,
+  Copy,
+  Info,
+  X,
+} from 'lucide-react'
 
-import { useState, useEffect } from 'react'
-import { Store as StoreIcon, ShieldCheck, Mail, Users, ToggleLeft, ToggleRight, Plus, Sliders } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { useAuthStore } from '@/store/authStore'
-import { supabase } from '@/lib/supabaseClient'
-import PageHeader from '@/components/shared/PageHeader'
-import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { useToast } from '../../components/ui/use-toast'
-import type { Store, StoreMember } from '@/types'
-
-const PRESET_COLORS = [
-  '#0f766e', // Deep Teal
-  '#4f46e5', // Indigo
-  '#e11d48', // Coral Red
-  '#ea580c', // Orange
-  '#059669', // Emerald
-  '#7c3aed', // Violet
+const colorSwatches = [
+  '#0f766e', // Teal
+  '#3b82f6', // Blue
+  '#6366f1', // Indigo
+  '#8b5cf6', // Purple
+  '#ec4899', // Pink
+  '#f43f5e', // Rose
+  '#f97316', // Orange
+  '#eab308', // Yellow
+  '#10b981', // Emerald
+  '#64748b', // Slate
 ]
 
 export default function Settings() {
-  const { toast } = useToast()
-  const { user, activeStore, activeMember } = useAuth()
-  const { setActiveStore, setActiveMember } = useAuthStore()
-  
-  const [activeTab, setActiveTab] = useState<'profile' | 'order_types' | 'staff'>('profile')
-  const [loading, setLoading] = useState(true)
+  const { activeStore, activeMember, user, setActiveStore } = useAuthStore()
+  const storeId = activeStore?.id
 
-  // Store Profile State
+  const role = activeMember?.role || 'cashier'
+  const isOwner = role === 'owner'
+  const isAdmin = role === 'admin'
+
+  // Access Restriction Gate
+  if (!canManageStaff(role)) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center max-w-md mx-auto font-body">
+        <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-red-600 mb-4 border border-red-100">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 font-heading">Access Denied</h3>
+        <p className="text-gray-500 text-sm mt-2">
+          Only store owners and administrators can configure settings and manage staff roster permissions.
+        </p>
+      </div>
+    )
+  }
+
+  const [activeTab, setActiveTab] = useState<'profile' | 'staff'>('profile')
+  const [loading, setLoading] = useState(false)
+
+  // Store Profile States
   const [storeName, setStoreName] = useState('')
-  const [storeTagline, setStoreTagline] = useState('')
-  const [storeLogoUrl, setStoreLogoUrl] = useState('')
-  const [storeAddress, setStoreAddress] = useState('')
-  const [storePhone, setStorePhone] = useState('')
-  const [storeEmail, setStoreEmail] = useState('')
+  const [tagline, setTagline] = useState('')
+  const [address, setAddress] = useState('')
+  const [phone, setPhone] = useState('')
   const [currencySymbol, setCurrencySymbol] = useState('₹')
-  const [currencyCode, setCurrencyCode] = useState('INR')
   const [taxRate, setTaxRate] = useState(0)
-  const [parcelCharges, setParcelCharges] = useState(0)
   const [receiptFooter, setReceiptFooter] = useState('')
   const [themeColor, setThemeColor] = useState('#0f766e')
-  const [storeType, setStoreType] = useState('retail')
 
-  // Order Types Settings State
-  const [orderTypes, setOrderTypes] = useState<Record<string, boolean>>({
-    walk_in: true,
-    dine_in: true,
-    takeaway: true,
-    parcel: true,
-    delivery: true,
-  })
-
-  // Staff State
-  const [staffList, setStaffList] = useState<any[]>([])
-  const [inviteEmail, setInviteEmail] = useState('')
+  // Staff States
+  const [members, setMembers] = useState<any[]>([])
+  const [inviteModalOpen, setInviteModalOpen] = useState(false)
+  
   const [inviteName, setInviteName] = useState('')
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteUserId, setInviteUserId] = useState('')
   const [inviteRole, setInviteRole] = useState<'admin' | 'cashier'>('cashier')
-  const [showInviteModal, setShowInviteModal] = useState(false)
 
-  // Check if owner
-  const isOwner = activeMember?.role === 'owner'
-
-  // Fetch all settings data
-  const loadSettingsData = async () => {
+  // Load Settings
+  useEffect(() => {
     if (!activeStore) return
+    setStoreName(activeStore.name)
+    setTagline(activeStore.tagline || '')
+    setAddress(activeStore.address || '')
+    setPhone(activeStore.phone || '')
+    setCurrencySymbol(activeStore.currency_symbol || '₹')
+    setTaxRate(activeStore.tax_rate || 0)
+    setReceiptFooter(activeStore.receipt_footer || 'Thank you for visiting!')
+    setThemeColor(activeStore.theme_color || '#0f766e')
+    
+    fetchMembers()
+  }, [activeStore])
+
+  const fetchMembers = async () => {
+    if (!storeId) return
+    try {
+      const { data, error } = await supabase
+        .from('store_members')
+        .select('*')
+        .eq('store_id', storeId)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+      setMembers(data || [])
+    } catch (e: any) {
+      console.error(e)
+    }
+  }
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!isOwner) {
+      toast.error('Only the store owner can edit configuration details')
+      return
+    }
+
     setLoading(true)
     try {
-      // 1. Populate store profile state
-      setStoreName(activeStore.name)
-      setStoreTagline(activeStore.tagline || '')
-      setStoreLogoUrl(activeStore.logo_url || '')
-      setStoreAddress(activeStore.address || '')
-      setStorePhone(activeStore.phone || '')
-      setStoreEmail(activeStore.email || '')
-      setCurrencySymbol(activeStore.currency_symbol)
-      setCurrencyCode(activeStore.currency_code)
-      setTaxRate(activeStore.tax_rate)
-      setParcelCharges(activeStore.default_parcel_charges)
-      setReceiptFooter(activeStore.receipt_footer)
-      setThemeColor(activeStore.theme_color)
-      setStoreType(activeStore.store_type)
+      const { data, error } = await supabase
+        .from('stores')
+        .update({
+          name: storeName,
+          tagline: tagline || null,
+          address: address || null,
+          phone: phone || null,
+          currency_symbol: currencySymbol,
+          tax_rate: Number(taxRate),
+          receipt_footer: receiptFooter,
+          theme_color: themeColor,
+        })
+        .eq('id', storeId)
+        .select()
+        .single()
 
-      // 2. Fetch order types JSON from store_settings
-      const { data: settingData } = await (supabase
-        .from('store_settings') as any)
-        .select('value')
-        .eq('store_id', activeStore.id)
-        .eq('key', 'order_types')
-        .maybeSingle()
+      if (error) throw error
 
-      if (settingData?.value) {
-        try {
-          setOrderTypes(JSON.parse(settingData.value))
-        } catch (_) {}
-      }
-
-      // 3. Fetch staff members list
-      const { data: members } = await (supabase
-        .from('store_members') as any)
-        .select('*')
-        .eq('store_id', activeStore.id)
-        .order('role', { ascending: true })
-
-      if (members) {
-        setStaffList(members)
-      }
-    } catch (err) {
-      console.error('Failed to load settings:', err)
+      setActiveStore(data as Store)
+      toast.success('Store settings saved successfully!')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save store profile')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    loadSettingsData()
-  }, [activeStore])
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!activeStore || !isOwner) return
+    if (!isOwner) {
+      toast.error('Only owners can invite staff')
+      return
+    }
+    if (!inviteUserId.trim()) {
+      toast.error('User ID UUID is required')
+      return
+    }
 
     try {
-      const updatedStore = {
-        name: storeName,
-        tagline: storeTagline || null,
-        logo_url: storeLogoUrl || null,
-        address: storeAddress || null,
-        phone: storePhone || null,
-        email: storeEmail || null,
-        currency_symbol: currencySymbol,
-        currency_code: currencyCode,
-        tax_rate: Number(taxRate),
-        default_parcel_charges: Number(parcelCharges),
-        receipt_footer: receiptFooter,
-        theme_color: themeColor,
-        store_type: storeType,
-      }
-
-      const { data, error } = await (supabase
-        .from('stores') as any)
-        .update(updatedStore)
-        .eq('id', activeStore.id)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      // Update Zustand local context
-      setActiveStore(data as Store)
-      setActiveMember(activeMember as StoreMember)
-      
-      toast({
-        title: '✅ Settings Saved',
-        description: 'Store profile has been successfully updated.',
-      })
-    } catch (err: any) {
-      toast({
-        title: '❌ Save Failed',
-        description: err.message || 'Could not update store profile.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleToggleOrderType = async (key: string) => {
-    if (!activeStore || !isOwner) return
-    
-    const updated = {
-      ...orderTypes,
-      [key]: !orderTypes[key],
-    }
-    
-    setOrderTypes(updated)
-
-    try {
-      // Upsert JSON setting into store_settings
-      const { error } = await (supabase
-        .from('store_settings') as any)
-        .upsert({
-          store_id: activeStore.id,
-          key: 'order_types',
-          value: JSON.stringify(updated),
-        }, { onConflict: 'store_id,key' })
-
-      if (error) throw error
-    } catch (err: any) {
-      toast({
-        title: '❌ Toggle Failed',
-        description: err.message || 'Could not update order type visibility.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  // Staff Management operations
-  const handleInviteStaff = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!activeStore || !isOwner || !inviteEmail) return
-
-    try {
-      // Simulate/Insert a new member
-      // Note: Because we cannot call admin.inviteUserByEmail on client securely,
-      // we insert a member record with invite name and email representation.
-      const mockUserId = crypto.randomUUID() // Simulated authentication link
-
-      const { data, error } = await (supabase
-        .from('store_members') as any)
-        .insert({
-          store_id: activeStore.id,
-          user_id: mockUserId, // Simulated ID
+      const { data, error } = await supabase
+        .from('store_members')
+        .insert([{
+          store_id: storeId,
+          user_id: inviteUserId.trim(),
           role: inviteRole,
           full_name: `${inviteName} (${inviteEmail})`,
-          is_active: true,
-        })
+          is_active: true
+        }])
         .select()
         .single()
 
       if (error) throw error
 
-      setStaffList([...staffList, data])
-      setInviteEmail('')
+      toast.success(`Successfully added staff member ${inviteName}!`)
+      setInviteModalOpen(false)
+      setInviteUserId('')
       setInviteName('')
-      setShowInviteModal(false)
-
-      toast({
-        title: '📨 Invitation Sent',
-        description: `Successfully added ${inviteName} as ${inviteRole}.`,
-      })
+      setInviteEmail('')
+      fetchMembers()
     } catch (err: any) {
-      toast({
-        title: '❌ Invitation Failed',
-        description: err.message || 'Could not create staff membership.',
-        variant: 'destructive',
-      })
+      toast.error(err.message || 'Failed to add staff member. Check if User ID exists.')
     }
   }
 
-  const handleToggleStaffStatus = async (member: any) => {
-    if (!activeStore || !isOwner || member.role === 'owner') return
+  const handleToggleMember = async (member: any) => {
+    if (!isOwner) return
+    if (member.user_id === user?.id) {
+      toast.error('You cannot toggle your own active status')
+      return
+    }
 
     try {
-      const { data, error } = await (supabase
-        .from('store_members') as any)
+      const { data, error } = await supabase
+        .from('store_members')
         .update({ is_active: !member.is_active })
         .eq('id', member.id)
         .select()
@@ -251,259 +200,216 @@ export default function Settings() {
 
       if (error) throw error
 
-      setStaffList(staffList.map((s) => (s.id === member.id ? data : s)))
+      toast.success(`Member status updated successfully!`)
+      fetchMembers()
     } catch (err: any) {
-      toast({
-        title: '❌ Status Update Failed',
-        description: err.message,
-        variant: 'destructive',
-      })
+      toast.error(err.message || 'Failed to toggle member status')
     }
   }
 
-  const handleUpdateStaffRole = async (memberId: string, newRole: 'admin' | 'cashier') => {
-    if (!activeStore || !isOwner) return
+  const handleRoleChange = async (member: any, nextRole: 'admin' | 'cashier') => {
+    if (!isOwner) return
+    if (member.user_id === user?.id) {
+      toast.error('You cannot change your own role')
+      return
+    }
 
     try {
-      const { data, error } = await (supabase
-        .from('store_members') as any)
-        .update({ role: newRole })
-        .eq('id', memberId)
-        .select()
-        .single()
+      const { error } = await supabase
+        .from('store_members')
+        .update({ role: nextRole })
+        .eq('id', member.id)
 
       if (error) throw error
 
-      setStaffList(staffList.map((s) => (s.id === memberId ? data : s)))
-      toast({
-        title: '✅ Role Updated',
-        description: `Role changed to ${newRole}.`,
-      })
+      toast.success('Member role updated')
+      fetchMembers()
     } catch (err: any) {
-      toast({
-        title: '❌ Role Update Failed',
-        description: err.message,
-        variant: 'destructive',
-      })
+      toast.error(err.message || 'Failed to update member role')
     }
   }
 
-  if (loading) {
-    return <LoadingSkeleton variant="table" count={5} />
+  const handleCopyUserId = () => {
+    if (!user?.id) return
+    navigator.clipboard.writeText(user.id)
+    toast.success('Your User ID copied to clipboard!')
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      
-      {/* Page Header */}
-      <PageHeader
-        title="Store Settings"
-        subtitle="Manage brand profile, configure order options, and onboard staff members"
-      />
+    <div className="space-y-6">
+      {/* Header and Tab Selection */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border-b border-gray-100 pb-5">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 font-heading">Settings</h2>
+          <p className="text-gray-500 font-body text-sm mt-0.5">Configure store profiles and manage cashier access roster</p>
+        </div>
 
-      {/* Tabs Header bar */}
-      <div className="flex items-center border-b border-muted/50 gap-2">
-        <button
-          onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-poppins text-sm font-semibold transition-all ${
-            activeTab === 'profile'
-              ? 'border-primary text-primary bg-primary/5 rounded-t-lg font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <StoreIcon className="w-4 h-4" />
-          Store Profile
-        </button>
-        
-        <button
-          onClick={() => setActiveTab('order_types')}
-          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-poppins text-sm font-semibold transition-all ${
-            activeTab === 'order_types'
-              ? 'border-primary text-primary bg-primary/5 rounded-t-lg font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Sliders className="w-4 h-4" />
-          Order Types
-        </button>
+        {/* Tab selection pills */}
+        <div className="flex bg-gray-100 p-1.5 rounded-xl border border-gray-150 shrink-0">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold font-body transition-all ${
+              activeTab === 'profile'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <StoreIcon className="w-4 h-4" />
+            <span>Store Profile</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('staff')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold font-body transition-all ${
+              activeTab === 'staff'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Staff & Access</span>
+          </button>
+        </div>
+      </div>
 
+      {/* Copy User ID helper card for cashiers */}
+      <div className="bg-[#0f766e]/5 border border-[#0f766e]/15 p-4 rounded-2xl flex items-center justify-between gap-4 text-xs font-semibold font-body text-gray-650">
+        <div className="flex items-center gap-2.5">
+          <Info className="w-5 h-5 text-[#0f766e] shrink-0" />
+          <div>
+            <span>Your Personal User ID: </span>
+            <code className="bg-white px-2 py-0.5 rounded border border-gray-150 font-mono text-gray-950 font-bold select-all">
+              {user?.id}
+            </code>
+          </div>
+        </div>
         <button
-          onClick={() => setActiveTab('staff')}
-          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-poppins text-sm font-semibold transition-all ${
-            activeTab === 'staff'
-              ? 'border-primary text-primary bg-primary/5 rounded-t-lg font-bold'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
+          onClick={handleCopyUserId}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border hover:bg-gray-50 text-gray-700 rounded-lg active:scale-95 transition-transform"
         >
-          <Users className="w-4 h-4" />
-          Staff & Members
+          <Copy className="w-3.5 h-3.5" /> Copy
         </button>
       </div>
 
-      {!isOwner && (
-        <div className="p-3.5 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl text-xs flex items-center gap-2 font-medium">
-          <ShieldCheck className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-          <span>Viewing Mode: Settings modifications are limited to the store owner role only.</span>
-        </div>
-      )}
-
       {/* Tab: Store Profile Form */}
       {activeTab === 'profile' && (
-        <form onSubmit={handleSaveProfile} className="space-y-6 bg-white/40 border border-white/50 p-6 rounded-2xl shadow-sm max-w-3xl">
+        <form onSubmit={handleSaveProfile} className="space-y-5 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm max-w-2xl">
+          <h3 className="text-base font-bold text-gray-900 font-heading">Brand & Business Profile</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Store Name *</label>
-              <Input
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                Store Name *
+              </label>
+              <input
+                type="text"
+                required
+                disabled={!isOwner}
                 value={storeName}
                 onChange={(e) => setStoreName(e.target.value)}
+                className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold disabled:opacity-60"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                Tagline
+              </label>
+              <input
+                type="text"
                 disabled={!isOwner}
+                value={tagline}
+                onChange={(e) => setTagline(e.target.value)}
+                className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 disabled:opacity-60"
+                placeholder="e.g. Delicious Wood-fired Pizza"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                Address Location
+              </label>
+              <input
+                type="text"
+                disabled={!isOwner}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 disabled:opacity-60"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                Contact Phone
+              </label>
+              <input
+                type="text"
+                disabled={!isOwner}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 disabled:opacity-60"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 border-t border-gray-55 pt-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                Currency Symbol *
+              </label>
+              <input
+                type="text"
                 required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Tagline</label>
-              <Input
-                value={storeTagline}
-                onChange={(e) => setStoreTagline(e.target.value)}
                 disabled={!isOwner}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Logo Image URL</label>
-              <Input
-                value={storeLogoUrl}
-                onChange={(e) => setStoreLogoUrl(e.target.value)}
-                disabled={!isOwner}
-                placeholder="https://example.com/logo.png"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Store Type</label>
-              <select
-                className="w-full h-10 px-3 rounded-lg border border-input bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
-                value={storeType}
-                onChange={(e) => setStoreType(e.target.value)}
-                disabled={!isOwner}
-              >
-                <option value="retail">Retail Shop</option>
-                <option value="restaurant">Restaurant / Cafe</option>
-                <option value="ice_cream">Ice Cream Parlor</option>
-                <option value="grocery">Grocery Store</option>
-                <option value="pharmacy">Pharmacy</option>
-                <option value="clothing">Clothing Boutique</option>
-                <option value="electronics">Electronics Store</option>
-                <option value="other">Other Store Workspace</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Phone</label>
-              <Input
-                value={storePhone}
-                onChange={(e) => setStorePhone(e.target.value)}
-                disabled={!isOwner}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Email</label>
-              <Input
-                type="email"
-                value={storeEmail}
-                onChange={(e) => setStoreEmail(e.target.value)}
-                disabled={!isOwner}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Address</label>
-              <Input
-                value={storeAddress}
-                onChange={(e) => setStoreAddress(e.target.value)}
-                disabled={!isOwner}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-muted/30 pt-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Currency Symbol</label>
-              <Input
                 value={currencySymbol}
                 onChange={(e) => setCurrencySymbol(e.target.value)}
-                disabled={!isOwner}
-                required
+                className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-bold disabled:opacity-60"
               />
             </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Currency Code</label>
-              <Input
-                value={currencyCode}
-                onChange={(e) => setCurrencyCode(e.target.value)}
-                disabled={!isOwner}
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Tax Rate %</label>
-              <Input
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                Tax Rate (%)
+              </label>
+              <input
                 type="number"
+                step="0.01"
+                min="0"
+                disabled={!isOwner}
                 value={taxRate}
                 onChange={(e) => setTaxRate(Number(e.target.value))}
-                disabled={!isOwner}
-                min="0"
-                step="0.01"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Parcel Charge</label>
-              <Input
-                type="number"
-                value={parcelCharges}
-                onChange={(e) => setParcelCharges(Number(e.target.value))}
-                disabled={!isOwner}
-                min="0"
-                step="0.01"
+                className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold disabled:opacity-60"
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-muted-foreground uppercase">Receipt Custom Footer Text</label>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+              Receipt Footer Note Text
+            </label>
             <textarea
-              className="w-full p-2.5 rounded-lg border border-input bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary h-20 resize-none"
+              rows={2}
+              disabled={!isOwner}
               value={receiptFooter}
               onChange={(e) => setReceiptFooter(e.target.value)}
-              disabled={!isOwner}
-              placeholder="e.g. Thanks for your visit! Follow us on Instagram..."
+              className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-body disabled:opacity-60"
             />
           </div>
 
-          {/* Color Picker Section */}
-          <div className="space-y-2 border-t border-muted/30 pt-4">
-            <label className="text-xs font-bold text-muted-foreground uppercase block font-poppins">Workspace Theme Color</label>
-            <div className="flex flex-wrap items-center gap-3">
-              {PRESET_COLORS.map((color) => (
+          {/* Color theme preset picker */}
+          <div className="space-y-2 border-t border-gray-55 pt-4">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+              POS Work Environment Theme Color
+            </label>
+            <div className="flex flex-wrap items-center gap-2.5">
+              {colorSwatches.map((color) => (
                 <button
                   key={color}
                   type="button"
+                  disabled={!isOwner}
                   onClick={() => setThemeColor(color)}
-                  className={`w-9 h-9 rounded-xl border-2 transition-all ${
-                    themeColor === color ? 'scale-108 border-foreground shadow-md' : 'border-transparent'
+                  className={`w-9 h-9 rounded-full border-2 transition-all active:scale-90 ${
+                    themeColor === color ? 'border-gray-900 scale-105' : 'border-transparent hover:scale-102'
                   }`}
                   style={{ backgroundColor: color }}
-                  disabled={!isOwner}
                 />
               ))}
               <div className="flex items-center gap-1.5 ml-2 border bg-white rounded-xl px-2 h-9">
@@ -514,98 +420,59 @@ export default function Settings() {
                   className="w-6 h-6 border-0 rounded cursor-pointer p-0"
                   disabled={!isOwner}
                 />
-                <span className="text-xs uppercase font-mono">{themeColor}</span>
+                <span className="text-xs uppercase font-mono font-semibold text-gray-500">{themeColor}</span>
               </div>
             </div>
           </div>
 
           {isOwner && (
-            <div className="flex justify-end pt-4 border-t border-muted/30">
-              <Button type="submit" className="bg-primary hover:bg-primary/90 font-bold shadow-md">
-                Save Profile Changes
-              </Button>
+            <div className="flex justify-end pt-4 border-t border-gray-55">
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-5 py-2.5 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-bold font-body text-xs shadow-md shadow-[#0f766e]/10 active:scale-95 transition-transform flex items-center gap-1.5"
+              >
+                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>Save Profile Changes</span>
+              </button>
             </div>
           )}
         </form>
       )}
 
-      {/* Tab: Order Types Selection */}
-      {activeTab === 'order_types' && (
-        <div className="bg-white/40 border border-white/50 p-6 rounded-2xl shadow-sm max-w-md space-y-4">
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-foreground font-poppins">Configure Order Routing Types</h3>
-            <p className="text-xs text-muted-foreground">
-              Select which order modes are active at checkout on the POS billing workspace.
-            </p>
-          </div>
-
-          <div className="space-y-2.5 pt-2">
-            {[
-              { key: 'walk_in', label: 'Walk In order' },
-              { key: 'dine_in', label: 'Dine In reservation' },
-              { key: 'takeaway', label: 'Takeaway pickup' },
-              { key: 'parcel', label: 'Parcel packaging' },
-              { key: 'delivery', label: 'Home Delivery' },
-            ].map((type) => {
-              const isEnabled = orderTypes[type.key] !== false
-              return (
-                <div
-                  key={type.key}
-                  className="flex items-center justify-between p-3.5 bg-white border border-muted/50 rounded-xl hover:bg-muted/5 transition-colors"
-                >
-                  <span className="text-xs font-bold text-foreground font-poppins capitalize">
-                    {type.label}
-                  </span>
-                  <button
-                    onClick={() => handleToggleOrderType(type.key)}
-                    className="p-1 text-primary focus:outline-none"
-                    disabled={!isOwner}
-                  >
-                    {isEnabled ? (
-                      <ToggleRight className="w-9 h-6 text-primary cursor-pointer" />
-                    ) : (
-                      <ToggleLeft className="w-9 h-6 text-muted-foreground cursor-pointer" />
-                    )}
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Tab: Staff Roster Management */}
+      {/* Tab: Staff List & Add Modal */}
       {activeTab === 'staff' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white/40 p-4 rounded-xl border border-white/50 shadow-sm">
-            <span className="text-sm font-semibold text-muted-foreground">
-              Onboarded Staff Members: {staffList.length}
+          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+            <span className="text-sm font-semibold font-body text-gray-500">
+              Active Store Staff: <strong className="text-gray-800">{members.length}</strong>
             </span>
             {isOwner && (
-              <Button onClick={() => setShowInviteModal(true)} className="bg-primary hover:bg-primary/90 flex items-center gap-2 font-bold text-xs h-9 shadow-sm">
-                <Plus className="w-4 h-4" />
-                Invite Staff Member
-              </Button>
+              <button
+                onClick={() => setInviteModalOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-bold font-body text-xs shadow-md shadow-[#0f766e]/10 active:scale-95 transition-transform"
+              >
+                <Plus className="w-4 h-4" /> Invite Staff Member
+              </button>
             )}
           </div>
 
-          <div className="border border-white/50 bg-white/40 rounded-2xl overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse text-xs">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse text-xs font-body">
               <thead>
-                <tr className="border-b bg-muted/20">
-                  <th className="p-4 font-bold text-muted-foreground uppercase">Full Name</th>
-                  <th className="p-4 font-bold text-muted-foreground uppercase">Email Address</th>
-                  <th className="p-4 font-bold text-muted-foreground uppercase">Role Authority</th>
-                  <th className="p-4 font-bold text-muted-foreground uppercase w-28 text-center">Status</th>
-                  {isOwner && <th className="p-4 font-bold text-muted-foreground uppercase w-32 text-center">Actions</th>}
+                <tr className="border-b border-gray-100 text-[10px] uppercase font-bold tracking-wider text-gray-400 font-body bg-gray-50/50">
+                  <th className="p-4">Staff Member</th>
+                  <th className="p-4 text-center w-36">Role Permission</th>
+                  <th className="p-4 text-center w-28">Access State</th>
+                  {isOwner && <th className="p-4 text-right w-36">Actions</th>}
                 </tr>
               </thead>
-              <tbody>
-                {staffList.map((member) => {
+              <tbody className="divide-y divide-gray-50 text-gray-700">
+                {members.map((member) => {
                   const isSelf = member.user_id === user?.id
                   const isOwnerMember = member.role === 'owner'
 
-                  // Extract email if simulated
+                  // Extract emails/names from simulated full_name formats "Name (email)"
                   let emailStr = 'No email associated'
                   let displayFullName = member.full_name || 'Staff Member'
                   if (member.full_name && member.full_name.includes('(') && member.full_name.includes(')')) {
@@ -615,57 +482,61 @@ export default function Settings() {
                       displayFullName = member.full_name.split('(')[0].trim()
                     }
                   } else if (isSelf) {
-                    emailStr = user?.email || 'owner@workspace.com'
-                  }
-
-                  const roleColors: Record<string, string> = {
-                    owner: 'bg-red-50 text-red-700 border-red-200',
-                    admin: 'bg-blue-50 text-blue-700 border-blue-200',
-                    cashier: 'bg-green-50 text-green-700 border-green-200',
+                    emailStr = user?.email || 'owner@universalpos.com'
                   }
 
                   return (
-                    <tr key={member.id} className="border-b hover:bg-white/60 transition-colors">
-                      <td className="p-4 font-bold text-foreground">
-                        {displayFullName} {isSelf && <span className="text-[10px] text-muted-foreground">(You)</span>}
-                      </td>
-                      <td className="p-4 text-muted-foreground flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5 text-muted-foreground/60" />
-                        {emailStr}
-                      </td>
+                    <tr key={member.id} className="hover:bg-gray-50/20">
                       <td className="p-4">
-                        {isOwner && !isOwnerMember ? (
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 text-sm">
+                            {displayFullName} {isSelf && <span className="text-gray-450 italic text-[10px] ml-1">(You)</span>}
+                          </span>
+                          <span className="text-[10px] text-gray-400 mt-0.5">{emailStr}</span>
+                          <span className="text-[9px] text-gray-300 font-mono mt-0.5 select-all">{member.user_id}</span>
+                        </div>
+                      </td>
+                      <td className="p-4 text-center">
+                        {isOwner && !isOwnerMember && !isSelf ? (
                           <select
-                            className="h-8 px-2 py-0.5 rounded border border-input bg-white text-xs focus:outline-none"
                             value={member.role}
-                            onChange={(e) => handleUpdateStaffRole(member.id, e.target.value as any)}
+                            onChange={(e) => handleRoleChange(member, e.target.value as any)}
+                            className="bg-gray-50 border border-gray-200 px-2 py-1 rounded-lg text-xs font-semibold outline-none focus:border-[#0f766e]"
                           >
                             <option value="admin">Admin</option>
                             <option value="cashier">Cashier</option>
                           </select>
                         ) : (
-                          <span className={`px-2 py-0.5 rounded border font-semibold uppercase tracking-wider text-[9px] ${roleColors[member.role] || ''}`}>
+                          <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider font-body ${
+                            isOwnerMember
+                              ? 'bg-purple-50 border-purple-200 text-purple-800'
+                              : member.role === 'admin'
+                              ? 'bg-blue-50 border-blue-200 text-blue-800'
+                              : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          }`}>
                             {member.role}
                           </span>
                         )}
                       </td>
-                      <td className="p-4 text-center">
-                        <span className={`px-2 py-0.5 rounded-full font-semibold border ${member.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
-                          {member.is_active ? 'Active' : 'Deactivated'}
+                      <td className="p-4 text-center font-semibold">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] border ${
+                          member.is_active ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-800 border-red-200'
+                        }`}>
+                          {member.is_active ? 'Active' : 'Blocked'}
                         </span>
                       </td>
                       {isOwner && (
-                        <td className="p-4 text-center">
-                          {!isOwnerMember && (
+                        <td className="p-4 text-right">
+                          {!isOwnerMember && !isSelf && (
                             <button
-                              onClick={() => handleToggleStaffStatus(member)}
-                              className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                              onClick={() => handleToggleMember(member)}
+                              className={`px-3 py-1.5 border font-bold text-[10px] rounded-xl active:scale-95 transition-transform ${
                                 member.is_active
-                                  ? 'bg-destructive/5 hover:bg-destructive/10 text-destructive border-destructive/20'
-                                  : 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200'
+                                  ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
+                                  : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
                               }`}
                             >
-                              {member.is_active ? 'Deactivate' : 'Activate'}
+                              {member.is_active ? 'Block Access' : 'Restore Access'}
                             </button>
                           )}
                         </td>
@@ -679,54 +550,101 @@ export default function Settings() {
         </div>
       )}
 
-      {/* Invite Modal Dialog */}
-      {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <form onSubmit={handleInviteStaff} className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm border border-muted space-y-4">
-            <h3 className="text-base font-bold font-poppins text-foreground">Onboard Store Staff</h3>
-            
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold text-muted-foreground">Staff Full Name</label>
-              <Input
-                placeholder="e.g. Jane Smith"
-                value={inviteName}
-                onChange={(e) => setInviteName(e.target.value)}
-                required
-              />
+      {/* Invite/Add Staff Modal Dialog */}
+      {inviteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setInviteModalOpen(false)} />
+          <div className="relative bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-gray-100 p-6 animate-zoom-in">
+            <button
+              onClick={() => setInviteModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-455 hover:text-gray-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold text-gray-900 font-heading mb-3">Onboard Store Staff</h3>
+
+            {/* Hint alert */}
+            <div className="p-3 bg-[#0f766e]/5 border border-[#0f766e]/15 rounded-2xl flex gap-2 text-[10px] text-gray-600 font-semibold mb-4 leading-normal">
+              <Shield className="w-4 h-4 text-[#0f766e] shrink-0" />
+              <span>
+                To grant cashier access, staff must register their account first. Paste their personal User ID (copied from their own settings panel) below.
+              </span>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold text-muted-foreground">Email Address</label>
-              <Input
-                type="email"
-                placeholder="jane@company.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                required
-              />
-            </div>
+            <form onSubmit={handleAddStaff} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Staff Display Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+                  placeholder="e.g. John Cashier"
+                />
+              </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold text-muted-foreground">Access Role Permission</label>
-              <select
-                className="w-full h-10 px-3 rounded-lg border border-input bg-white text-xs focus:outline-none shadow-xs"
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as any)}
-              >
-                <option value="cashier">Cashier (POS Checkout only)</option>
-                <option value="admin">Admin (CRUD Products & Categories)</option>
-              </select>
-            </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Staff Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900"
+                  placeholder="e.g. john@company.com"
+                />
+              </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={() => setShowInviteModal(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" className="bg-primary hover:bg-primary/90 font-bold">
-                Invite Staff Member
-              </Button>
-            </div>
-          </form>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Staff User ID (UUID) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={inviteUserId}
+                  onChange={(e) => setInviteUserId(e.target.value)}
+                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-mono"
+                  placeholder="e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Access Permission Level
+                </label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as any)}
+                  className="block w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white transition-colors outline-none text-gray-950 font-semibold"
+                >
+                  <option value="cashier">Cashier (Checkouts only)</option>
+                  <option value="admin">Admin (Manage Catalog & Staff)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setInviteModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold font-body text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-bold font-body text-xs transition-colors shadow-md"
+                >
+                  Invite Staff
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

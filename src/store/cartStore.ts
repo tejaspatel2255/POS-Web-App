@@ -1,371 +1,198 @@
-// File Path: d:/Projects/Web/Universal POS/src/store/cartStore.ts
-
+// src/store/cartStore.ts
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Product, CartItem } from '../types'
+import { CartItem } from '../types'
 
-export interface HeldCart {
-  id: string
-  items: CartItem[]
-  orderType: string
-  discountPercent: number
-  parcelCharges: number
-  heldAt: string
-}
-
-interface StoreCart {
+export interface CartData {
   items: CartItem[]
   discountPercent: number
   parcelCharges: number
-  heldCarts: HeldCart[]
-  orderType: string
+  orderType: 'walk_in' | 'dine_in' | 'takeaway' | 'parcel' | 'delivery'
+  paymentMethod: 'cash' | 'card' | 'upi' | 'other'
+  note: string
 }
 
-interface CartStore {
-  // Current active store cart state
-  items: CartItem[]
-  storeId: string | null
-  discountPercent: number
-  parcelCharges: number
-  heldCarts: HeldCart[]
-  orderType: string
-
-  // All stores carts dictionary
-  carts: { [storeId: string]: StoreCart }
-
-  // Setters & Actions
-  setStoreId: (storeId: string | null) => void
-  addItem: (product: Product) => void
-  removeItem: (cartItemId: string) => void
-  updateQty: (cartItemId: string, quantity: number) => void
-  updateQuantity: (cartItemId: string, quantity: number) => void // Alias for backward compatibility
-  updateItemDiscount: (cartItemId: string, discount: number) => void
-  setOrderType: (type: string) => void
-  applyDiscount: (discount: number) => void
-  setGlobalDiscount: (discount: number) => void // Alias for backward compatibility
-  setParcelCharges: (charges: number) => void
-  clearCart: () => void
-
-  // Cart Hold System
-  holdCurrentCart: () => void
-  resumeCart: (id: string) => void
-  deleteHeldCart: (id: string) => void
-
-  // Calculation Selectors
-  subtotal: () => number
-  totalDiscount: () => number
-  total: () => number
+interface CartState {
+  carts: Record<string, CartData>
+  addItem: (storeId: string, item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void
+  removeItem: (storeId: string, productId: string) => void
+  updateQty: (storeId: string, productId: string, quantity: number) => void
+  clearCart: (storeId: string) => void
+  setDiscount: (storeId: string, discount: number) => void
+  setParcelCharges: (storeId: string, charges: number) => void
+  setOrderType: (storeId: string, orderType: CartData['orderType']) => void
+  setPaymentMethod: (storeId: string, paymentMethod: CartState['carts'][string]['paymentMethod']) => void
+  setNote: (storeId: string, note: string) => void
 }
 
-const initialStoreCart = (): StoreCart => ({
+const defaultCart = (): CartData => ({
   items: [],
   discountPercent: 0,
   parcelCharges: 0,
-  heldCarts: [],
   orderType: 'walk_in',
-});
+  paymentMethod: 'cash',
+  note: ''
+})
 
-export const useCartStore = create<CartStore>()(
+export const useCartStore = create<CartState>()(
   persist(
-    (set, get) => ({
-      items: [],
-      storeId: null,
-      discountPercent: 0,
-      parcelCharges: 0,
-      heldCarts: [],
-      orderType: 'walk_in',
+    (set) => ({
       carts: {},
 
-      setStoreId: (storeId) => set((state) => {
-        // 1. Save current active cart state to the dictionary under old storeId
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            items: state.items,
-            discountPercent: state.discountPercent,
-            parcelCharges: state.parcelCharges,
-            heldCarts: state.heldCarts,
-            orderType: state.orderType,
-          };
-        }
-
-        // 2. Load the cart state for the new storeId
-        const targetCart = storeId && updatedCarts[storeId] ? updatedCarts[storeId] : initialStoreCart();
-
-        return {
-          storeId,
-          items: targetCart.items,
-          discountPercent: targetCart.discountPercent,
-          parcelCharges: targetCart.parcelCharges,
-          heldCarts: targetCart.heldCarts,
-          orderType: targetCart.orderType,
-          carts: updatedCarts,
-        };
-      }),
-
-      addItem: (product) => set((state) => {
-        const existingItem = state.items.find(i => i.id === product.id)
-        let updatedItems: CartItem[];
-
-        if (existingItem) {
-          updatedItems = state.items.map(i =>
-            i.id === product.id
-              ? { ...i, quantity: i.quantity + 1 }
-              : i
-          );
+      addItem: (storeId, item) => set((state) => {
+        const cart = state.carts[storeId] || defaultCart()
+        const existingItemIndex = cart.items.findIndex((i) => i.product_id === item.product_id)
+        
+        let newItems = [...cart.items]
+        if (existingItemIndex > -1) {
+          const qty = newItems[existingItemIndex].quantity + (item.quantity ?? 1)
+          newItems[existingItemIndex] = {
+            ...newItems[existingItemIndex],
+            quantity: qty > 0 ? qty : 1
+          }
         } else {
-          updatedItems = [
-            ...state.items,
-            { ...product, cart_item_id: crypto.randomUUID(), quantity: 1, discount_percent: 0 }
-          ];
-        }
-
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            items: updatedItems,
-          };
+          newItems.push({
+            product_id: item.product_id,
+            product_name: item.product_name,
+            price: item.price,
+            quantity: item.quantity ?? 1,
+            unit: item.unit,
+            discount_percent: item.discount_percent ?? 0,
+            image_url: item.image_url
+          })
         }
 
         return {
-          items: updatedItems,
-          carts: updatedCarts,
-        };
-      }),
-
-      removeItem: (id) => set((state) => {
-        const updatedItems = state.items.filter(i => i.cart_item_id !== id);
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            items: updatedItems,
-          };
+          carts: {
+            ...state.carts,
+            [storeId]: { ...cart, items: newItems }
+          }
         }
-        return {
-          items: updatedItems,
-          carts: updatedCarts,
-        };
       }),
 
-      updateQty: (id, quantity) => set((state) => {
-        const updatedItems = state.items.map(i =>
-          i.cart_item_id === id
-            ? { ...i, quantity: Math.max(1, quantity) }
-            : i
-        );
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            items: updatedItems,
-          };
+      removeItem: (storeId, productId) => set((state) => {
+        const cart = state.carts[storeId] || defaultCart()
+        return {
+          carts: {
+            ...state.carts,
+            [storeId]: {
+              ...cart,
+              items: cart.items.filter((item) => item.product_id !== productId)
+            }
+          }
         }
-        return {
-          items: updatedItems,
-          carts: updatedCarts,
-        };
       }),
 
-      // Alias
-      updateQuantity: (id, quantity) => get().updateQty(id, quantity),
-
-      updateItemDiscount: (id, discount) => set((state) => {
-        const updatedItems = state.items.map(i =>
-          i.cart_item_id === id
-            ? { ...i, discount_percent: Math.max(0, Math.min(100, discount)) }
-            : i
-        );
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            items: updatedItems,
-          };
+      updateQty: (storeId, productId, quantity) => set((state) => {
+        const cart = state.carts[storeId] || defaultCart()
+        const newItems = cart.items.map((item) => {
+          if (item.product_id === productId) {
+            return { ...item, quantity: quantity > 0 ? quantity : 1 }
+          }
+          return item
+        })
+        return {
+          carts: {
+            ...state.carts,
+            [storeId]: { ...cart, items: newItems }
+          }
         }
-        return {
-          items: updatedItems,
-          carts: updatedCarts,
-        };
       }),
 
-      setOrderType: (type) => set((state) => {
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            orderType: type,
-          };
+      clearCart: (storeId) => set((state) => ({
+        carts: {
+          ...state.carts,
+          [storeId]: defaultCart()
         }
-        return {
-          orderType: type,
-          carts: updatedCarts,
-        };
-      }),
+      })),
 
-      applyDiscount: (discount) => set((state) => {
-        const val = Math.max(0, Math.min(100, discount));
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            discountPercent: val,
-          };
+      setDiscount: (storeId, discountPercent) => set((state) => {
+        const cart = state.carts[storeId] || defaultCart()
+        return {
+          carts: {
+            ...state.carts,
+            [storeId]: { ...cart, discountPercent: Math.max(0, Math.min(100, discountPercent)) }
+          }
         }
-        return {
-          discountPercent: val,
-          carts: updatedCarts,
-        };
       }),
 
-      // Alias
-      setGlobalDiscount: (discount) => get().applyDiscount(discount),
-
-      setParcelCharges: (charges) => set((state) => {
-        const val = Math.max(0, charges);
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            parcelCharges: val,
-          };
+      setParcelCharges: (storeId, parcelCharges) => set((state) => {
+        const cart = state.carts[storeId] || defaultCart()
+        return {
+          carts: {
+            ...state.carts,
+            [storeId]: { ...cart, parcelCharges: Math.max(0, parcelCharges) }
+          }
         }
-        return {
-          parcelCharges: val,
-          carts: updatedCarts,
-        };
       }),
 
-      clearCart: () => set((state) => {
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            items: [],
-            discountPercent: 0,
-            parcelCharges: 0,
-          };
+      setOrderType: (storeId, orderType) => set((state) => {
+        const cart = state.carts[storeId] || defaultCart()
+        return {
+          carts: {
+            ...state.carts,
+            [storeId]: { ...cart, orderType }
+          }
         }
-        return {
-          items: [],
-          discountPercent: 0,
-          parcelCharges: 0,
-          carts: updatedCarts,
-        };
       }),
 
-      holdCurrentCart: () => set((state) => {
-        if (state.items.length === 0) return {};
-        
-        const newHeldCart: HeldCart = {
-          id: crypto.randomUUID(),
-          items: state.items,
-          orderType: state.orderType,
-          discountPercent: state.discountPercent,
-          parcelCharges: state.parcelCharges,
-          heldAt: new Date().toISOString()
-        };
-
-        const updatedHeldCarts = [...state.heldCarts, newHeldCart];
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            items: [],
-            discountPercent: 0,
-            parcelCharges: 0,
-            heldCarts: updatedHeldCarts,
-          };
+      setPaymentMethod: (storeId, paymentMethod) => set((state) => {
+        const cart = state.carts[storeId] || defaultCart()
+        return {
+          carts: {
+            ...state.carts,
+            [storeId]: { ...cart, paymentMethod }
+          }
         }
-
-        return {
-          heldCarts: updatedHeldCarts,
-          items: [],
-          discountPercent: 0,
-          parcelCharges: 0,
-          carts: updatedCarts,
-        };
       }),
 
-      resumeCart: (id) => set((state) => {
-        const cartToResume = state.heldCarts.find(c => c.id === id);
-        if (!cartToResume) return {};
-        
-        const updatedHeldCarts = state.heldCarts.filter(c => c.id !== id);
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            items: cartToResume.items,
-            orderType: cartToResume.orderType,
-            discountPercent: cartToResume.discountPercent,
-            parcelCharges: cartToResume.parcelCharges,
-            heldCarts: updatedHeldCarts,
-          };
+      setNote: (storeId, note) => set((state) => {
+        const cart = state.carts[storeId] || defaultCart()
+        return {
+          carts: {
+            ...state.carts,
+            [storeId]: { ...cart, note }
+          }
         }
-
-        return {
-          items: cartToResume.items,
-          orderType: cartToResume.orderType,
-          discountPercent: cartToResume.discountPercent,
-          parcelCharges: cartToResume.parcelCharges,
-          heldCarts: updatedHeldCarts,
-          carts: updatedCarts,
-        };
-      }),
-
-      deleteHeldCart: (id) => set((state) => {
-        const updatedHeldCarts = state.heldCarts.filter(c => c.id !== id);
-        const updatedCarts = { ...state.carts };
-        if (state.storeId) {
-          updatedCarts[state.storeId] = {
-            ...initialStoreCart(),
-            ...updatedCarts[state.storeId],
-            heldCarts: updatedHeldCarts,
-          };
-        }
-        return {
-          heldCarts: updatedHeldCarts,
-          carts: updatedCarts,
-        };
-      }),
-
-      subtotal: () => {
-        const items = get().items;
-        return items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
-      },
-
-      totalDiscount: () => {
-        const state = get();
-        const itemDiscounts = state.items.reduce((sum, item) => {
-          const itemTotal = (item.price || 0) * item.quantity;
-          return sum + (itemTotal * (item.discount_percent / 100));
-        }, 0);
-
-        const remainingSubtotal = state.subtotal() - itemDiscounts;
-        const globalDiscount = remainingSubtotal * (state.discountPercent / 100);
-
-        return itemDiscounts + globalDiscount;
-      },
-
-      total: () => {
-        const state = get();
-        return state.subtotal() - state.totalDiscount() + state.parcelCharges;
-      }
+      })
     }),
     {
-      name: 'pos-cart-storage',
+      name: 'pos-carts'
     }
   )
 )
+
+// React Hook to access cart state for a specific storeId
+export function useCart(storeId: string) {
+  const state = useCartStore()
+  const cart = state.carts[storeId] || defaultCart()
+
+  const subtotal = cart.items.reduce((sum, item) => {
+    const itemDiscount = (item.price * (item.discount_percent / 100))
+    return sum + ((item.price - itemDiscount) * item.quantity)
+  }, 0)
+  
+  const discountAmount = Number((subtotal * (cart.discountPercent / 100)).toFixed(2))
+  const total = Number((subtotal - discountAmount + cart.parcelCharges).toFixed(2))
+
+  return {
+    items: cart.items,
+    discountPercent: cart.discountPercent,
+    parcelCharges: cart.parcelCharges,
+    orderType: cart.orderType,
+    paymentMethod: cart.paymentMethod,
+    note: cart.note,
+    subtotal: Number(subtotal.toFixed(2)),
+    discountAmount,
+    total,
+    addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => state.addItem(storeId, item),
+    removeItem: (productId: string) => state.removeItem(storeId, productId),
+    updateQty: (productId: string, qty: number) => state.updateQty(storeId, productId, qty),
+    clearCart: () => state.clearCart(storeId),
+    setDiscount: (discount: number) => state.setDiscount(storeId, discount),
+    setParcelCharges: (charges: number) => state.setParcelCharges(storeId, charges),
+    setOrderType: (type: CartData['orderType']) => state.setOrderType(storeId, type),
+    setPaymentMethod: (method: CartData['paymentMethod']) => state.setPaymentMethod(storeId, method),
+    setNote: (note: string) => state.setNote(storeId, note)
+  }
+}

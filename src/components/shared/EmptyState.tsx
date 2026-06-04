@@ -1,34 +1,37 @@
-// File Path: d:/Projects/Web/Universal POS/src/components/shared/EmptyState.tsx
-
-import { Inbox, type LucideIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+// src/components/shared/EmptyState.tsx
+import React from 'react'
+import { Inbox } from 'lucide-react'
 
 interface EmptyStateProps {
-  icon?: LucideIcon
+  icon?: React.ReactNode
   title: string
-  message: string
-  actionLabel?: string
+  description: string
+  actionText?: string
   onAction?: () => void
 }
 
 export default function EmptyState({
-  icon: Icon = Inbox,
+  icon,
   title,
-  message,
-  actionLabel,
+  description,
+  actionText,
   onAction,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed rounded-2xl bg-white/40 border-white/50 shadow-sm max-w-lg mx-auto my-8">
-      <div className="p-4 bg-primary/10 text-primary rounded-full mb-4">
-        <Icon className="w-10 h-10" />
+    <div className="flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto">
+      <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 mb-4 border border-gray-100">
+        {icon || <Inbox className="w-8 h-8" />}
       </div>
-      <h3 className="text-lg font-bold font-poppins text-foreground">{title}</h3>
-      <p className="text-sm text-muted-foreground mt-2 max-w-sm">{message}</p>
-      {actionLabel && onAction && (
-        <Button onClick={onAction} className="mt-5 bg-primary hover:bg-primary/90 shadow-sm">
-          {actionLabel}
-        </Button>
+      <h3 className="text-lg font-bold text-gray-900 font-heading">{title}</h3>
+      <p className="text-gray-500 font-body text-sm mt-1.5 leading-relaxed">{description}</p>
+      {actionText && onAction && (
+        <button
+          type="button"
+          onClick={onAction}
+          className="mt-5 px-5 py-2.5 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-semibold font-body text-sm shadow-md shadow-[#0f766e]/10 transition-colors"
+        >
+          {actionText}
+        </button>
       )}
     </div>
   )

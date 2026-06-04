@@ -1,104 +1,122 @@
-// File Path: d:/Projects/Web/Universal POS/src/components/layout/Sidebar.tsx
-
+// src/components/layout/Sidebar.tsx
+import React from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Receipt, History, ListMinus, LineChart, Settings, LogOut, User } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/lib/supabaseClient'
-import { canManageMenu, canViewReports, canManageStaff } from '@/lib/permissions'
+import { useAuthStore } from '../../store/authStore'
+import { supabase } from '../../lib/supabase'
+import { toast } from '../shared/Toast'
+import {
+  LayoutDashboard,
+  Calculator,
+  History,
+  FolderTree,
+  BarChart3,
+  Settings as SettingsIcon,
+  LogOut,
+  Store as StoreIcon,
+} from 'lucide-react'
+import { canManageMenu, canViewReports, canManageStaff } from '../../lib/permissions'
 
-const STORE_TYPE_ICONS: Record<string, string> = {
-  restaurant: '🍽️',
-  ice_cream: '🍦',
-  grocery: '🛒',
-  pharmacy: '💊',
-  retail: '🏪',
-  clothing: '👗',
-  electronics: '📱',
-  other: '🏬',
-}
+const storeTypes = [
+  { id: 'restaurant', icon: '🍽️' },
+  { id: 'ice_cream', icon: '🍦' },
+  { id: 'grocery', icon: '🛒' },
+  { id: 'pharmacy', icon: '💊' },
+  { id: 'retail', icon: '🏪' },
+  { id: 'clothing', icon: '👗' },
+  { id: 'electronics', icon: '📱' },
+  { id: 'other', icon: '🏬' },
+]
 
 export default function Sidebar() {
   const navigate = useNavigate()
-  const { user, activeStore, activeMember } = useAuth()
-  const role = activeMember?.role
+  const { activeStore, activeMember, logout } = useAuthStore()
+
+  const role = activeMember?.role || 'cashier'
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    navigate('/login')
+    try {
+      await supabase.auth.signOut()
+      logout()
+      toast.success('Logged out successfully')
+      navigate('/login')
+    } catch (err: any) {
+      toast.error(err.message || 'Logout failed')
+    }
   }
 
-  const allNavItems = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard, show: true },
-    { name: 'Billing', href: '/billing', icon: Receipt, show: true },
-    { name: 'History', href: '/history', icon: History, show: true },
-    { name: 'Menu', href: '/menu', icon: ListMinus, show: canManageMenu(role) },
-    { name: 'Reports', href: '/reports', icon: LineChart, show: canViewReports(role) },
-    { name: 'Settings', href: '/settings', icon: Settings, show: canManageStaff(role) },
+  const getStoreIcon = (type: string) => {
+    const found = storeTypes.find((t) => t.id === type)
+    return found ? found.icon : '🏬'
+  }
+
+  // Navigation schema with permissions checks
+  const navItems = [
+    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, show: true },
+    { to: '/billing', label: 'Billing Screen', icon: Calculator, show: true },
+    { to: '/orders', label: 'Order History', icon: History, show: true },
+    { to: '/menu', label: 'Menu & Stock', icon: FolderTree, show: canManageMenu(role) },
+    { to: '/reports', label: 'Reports', icon: BarChart3, show: canViewReports(role) },
+    { to: '/settings', label: 'Settings', icon: SettingsIcon, show: canManageStaff(role) }, // settings requires owner (canManageStaff)
   ]
 
-  const visibleItems = allNavItems.filter(item => item.show)
-  const storeIcon = activeStore ? (STORE_TYPE_ICONS[activeStore.store_type] || '🏬') : '🏬'
+  const activeColor = activeStore?.theme_color || '#0f766e'
 
   return (
-    <aside className="w-full bg-primary text-primary-foreground flex flex-col h-full border-r-0 md:rounded-r-2xl shadow-xl z-20 overflow-x-hidden">
-      {/* Top Branding Section */}
-      <div className="p-4 md:p-6 flex items-center gap-3 border-b border-white/10 min-h-[73px]">
-        <div className="bg-white/20 p-2 rounded-xl shadow-inner text-2xl flex-shrink-0">
-          {storeIcon}
-        </div>
-        <div className="min-w-0 md:w-0 md:opacity-0 md:group-hover/sidebar:w-auto md:group-hover/sidebar:opacity-100 lg:w-auto lg:opacity-100 transition-all duration-300 overflow-hidden flex-1">
-          <h1 className="text-lg font-bold font-poppins tracking-wide truncate">
-            {activeStore?.name || 'Universal POS'}
-          </h1>
-          <p className="text-[10px] text-white/60 font-semibold tracking-wider uppercase">
-            {role || 'Staff'}
-          </p>
-        </div>
-      </div>
-      
-      {/* Navigation Items */}
-      <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
-        {visibleItems.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.href}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium min-h-[44px]",
-                isActive 
-                  ? "bg-secondary text-secondary-foreground shadow-md transform scale-[1.02]" 
-                  : "hover:bg-white/10 text-white/80 hover:text-white"
-              )
-            }
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            <span className="truncate md:w-0 md:opacity-0 md:group-hover/sidebar:w-auto md:group-hover/sidebar:opacity-100 lg:w-auto lg:opacity-100 transition-all duration-300 overflow-hidden">
-              {item.name}
-            </span>
-          </NavLink>
-        ))}
-      </nav>
-      
-      {/* Bottom User Info Section */}
-      <div className="p-4 border-t border-white/10 space-y-3">
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/5 md:justify-center lg:justify-start">
-          <User className="w-4 h-4 text-white/70 flex-shrink-0" />
-          <span className="text-xs font-medium text-white/90 truncate capitalize md:w-0 md:opacity-0 md:group-hover/sidebar:w-auto md:group-hover/sidebar:opacity-100 lg:w-auto lg:opacity-100 transition-all duration-300 overflow-hidden">
-            {activeMember?.full_name || user?.email || 'Staff'}
+    <div className="fixed inset-y-0 left-0 w-[240px] bg-white border-r border-gray-100 flex flex-col justify-between z-20">
+      {/* Top Section */}
+      <div className="flex flex-col">
+        {/* Workspace Brand Header */}
+        <div className="p-6 border-b border-gray-50 flex items-center gap-3">
+          <span className="text-3xl bg-gray-50 p-1.5 rounded-xl border border-gray-100 block">
+            {activeStore ? getStoreIcon(activeStore.store_type) : '🏬'}
           </span>
+          <div className="min-w-0">
+            <h2 className="font-bold text-gray-900 font-heading leading-tight truncate">
+              {activeStore?.name || 'Universal POS'}
+            </h2>
+            <span className="text-[10px] uppercase font-semibold font-body tracking-wider text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100 mt-1 inline-block">
+              {role}
+            </span>
+          </div>
         </div>
-        
+
+        {/* Navigation Links */}
+        <nav className="p-4 space-y-1">
+          {navItems
+            .filter((item) => item.show)
+            .map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                style={({ isActive }) => ({
+                  color: isActive ? activeColor : undefined,
+                  backgroundColor: isActive ? `${activeColor}10` : undefined,
+                })}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium font-body transition-colors group ${
+                    isActive
+                      ? ''
+                      : 'text-gray-500 hover:text-gray-950 hover:bg-gray-50'
+                  }`
+                }
+              >
+                <item.icon className="w-5 h-5 shrink-0" />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+        </nav>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="p-4 border-t border-gray-50">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-destructive/25 text-white hover:text-white transition-all text-sm font-medium min-h-[44px]"
+          className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium font-body text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
         >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          <span className="md:w-0 md:opacity-0 md:group-hover/sidebar:w-auto md:group-hover/sidebar:opacity-100 lg:w-auto lg:opacity-100 transition-all duration-300 overflow-hidden">
-            Logout
-          </span>
+          <LogOut className="w-5 h-5 shrink-0" />
+          <span>Sign Out</span>
         </button>
       </div>
-    </aside>
+    </div>
   )
 }

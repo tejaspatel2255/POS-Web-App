@@ -1,342 +1,235 @@
-// File Path: d:/Projects/Web/Universal POS/src/pages/billing/BillingScreen.tsx
+// src/pages/billing/BillingScreen.tsx
+import React, { useState, useEffect } from 'react'
+import { useAuthStore } from '../../store/authStore'
+import { useCategories } from '../../hooks/useCategories'
+import { useProducts } from '../../hooks/useProducts'
+import { useCart } from '../../store/cartStore'
+import { useOfflineOrder } from '../../hooks/useOfflineOrder'
+import CategoryPanel from '../../components/pos/CategoryPanel'
+import ProductGrid from '../../components/pos/ProductGrid'
+import CartPanel from '../../components/pos/CartPanel'
+import InvoiceModal from '../../components/pos/InvoiceModal'
+import { Search, ShoppingBag, X } from 'lucide-react'
 
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ShoppingBag } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { useCartStore } from '@/store/cartStore'
-import { useOfflineProducts } from '@/hooks/useOfflineProducts'
-import { useOfflineOrder } from '@/hooks/useOfflineOrder'
-import { supabase } from '@/lib/supabaseClient'
-import CategoryPanel from '@/components/pos/CategoryPanel'
-import ProductGrid from '@/components/pos/ProductGrid'
-import CartPanel from '@/components/pos/CartPanel'
-import InvoiceModal from '@/components/pos/InvoiceModal'
-import EmptyState from '@/components/shared/EmptyState'
-import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import { formatCurrency } from '@/lib/formatCurrency'
-import type { Product } from '@/types'
-
-const ORDER_TYPES = [
-  { id: 'walk_in', label: 'Walk In', icon: '🚶' },
-  { id: 'dine_in', label: 'Dine In', icon: '🍽️' },
-  { id: 'takeaway', label: 'Takeaway', icon: '🛍️' },
-  { id: 'parcel', label: 'Parcel', icon: '📦' },
-  { id: 'delivery', label: 'Delivery', icon: '🛵' },
-]
+const orderTypes = [
+  { id: 'walk_in', label: 'Walk In' },
+  { id: 'dine_in', label: 'Dine In' },
+  { id: 'takeaway', label: 'Takeaway' },
+  { id: 'parcel', label: 'Parcel' },
+  { id: 'delivery', label: 'Delivery' },
+] as const
 
 export default function BillingScreen() {
-  const navigate = useNavigate()
-  const { user, activeStore } = useAuth()
+  const { activeStore, user } = useAuthStore()
+  const storeId = activeStore?.id || ''
   
-  // Offline State & Products/Categories hook
-  const { products, categories, loading, isFromCache } = useOfflineProducts(activeStore?.id)
-  const { submitOrder } = useOfflineOrder()
-  
-  const {
-    items,
-    discountPercent,
-    parcelCharges,
-    addItem,
-    clearCart,
-    subtotal: getSubtotal,
-    totalDiscount: getTotalDiscount,
-  } = useCartStore()
-
-  // Selected state
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
-  const [selectedOrderType, setSelectedOrderType] = useState<string>('walk_in')
-  
-  // Enabled order types from store settings
-  const [enabledTypes, setEnabledTypes] = useState<Record<string, boolean>>({
-    walk_in: true,
-    dine_in: true,
-    takeaway: true,
-    parcel: true,
-    delivery: true,
-  })
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [mobileCartOpen, setMobileCartOpen] = useState(false)
+  const [invoiceData, setInvoiceData] = useState<any | null>(null)
 
-  // Responsive mobile cart state
-  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false)
+  const { data: categories = [] } = useCategories(storeId)
+  const { data: products = [] } = useProducts(storeId, selectedCategoryId)
+  const cart = useCart(storeId)
+  const { submitOrder } = useOfflineOrder(storeId)
 
-  // Invoice Modal State
-  const [invoiceOrder, setInvoiceOrder] = useState<any | null>(null)
-
-  // Query order types configuration from store settings
+  // Debounce search input
   useEffect(() => {
-    if (!activeStore) return
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search)
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [search])
 
-    const fetchOrderTypes = async () => {
-      try {
-        const { data } = await (supabase
-          .from('store_settings') as any)
-          .select('value')
-          .eq('store_id', activeStore.id)
-          .eq('key', 'order_types')
-          .maybeSingle()
+  // Filter products by search term
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+  )
 
-        if (data?.value) {
-          try {
-            const parsed = JSON.parse(data.value)
-            setEnabledTypes(parsed)
-            // Find first enabled type to auto-select
-            const firstEnabled = Object.entries(parsed).find(([_, enabled]) => enabled)
-            if (firstEnabled) {
-              setSelectedOrderType(firstEnabled[0])
-            }
-          } catch (_) {}
-        }
-      } catch (err) {
-        console.error('Failed to load order type settings:', err)
-      }
+  const handleCheckout = async (status: 'completed' | 'pending' | 'on_hold') => {
+    if (cart.items.length === 0) return
+
+    const cashierName = user?.user_metadata?.full_name || user?.email || 'Cashier'
+    
+    const orderPayload = {
+      cashier_id: user?.id,
+      cashier_name: cashierName,
+      order_type: cart.orderType,
+      status,
+      payment_method: cart.paymentMethod,
+      customer_name: undefined,
+      customer_phone: undefined,
+      subtotal: cart.subtotal,
+      discount_percent: cart.discountPercent,
+      discount_amount: cart.discountAmount,
+      parcel_charges: cart.parcelCharges,
+      tax_amount: Number((cart.subtotal * (activeStore?.tax_rate || 0) / 100).toFixed(2)),
+      total: cart.total,
+      note: cart.note,
+      items: cart.items,
     }
 
-    fetchOrderTypes()
-  }, [activeStore])
-
-  if (!activeStore) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground font-semibold">
-        No active store selected. Please select or create a store.
-      </div>
-    )
-  }
-
-  if (loading) {
-    return <LoadingSkeleton variant="card" count={6} />
-  }
-
-  // Filter products by active category selection
-  const categoryProducts = selectedCategoryId
-    ? products.filter((p) => p.category_id === selectedCategoryId)
-    : products
-
-  // Filter out disabled order types
-  const visibleOrderTypes = ORDER_TYPES.filter((type) => enabledTypes[type.id] !== false)
-
-  const handleAddCartItem = (product: Product) => {
-    addItem(product)
-  }
-
-  const handleCheckout = async (
-    status: 'pending' | 'completed' | 'on_hold',
-    saveAndPrint: boolean,
-    paymentMethod: 'cash' | 'card' | 'upi' | 'other'
-  ) => {
     try {
-      const subtotal = getSubtotal()
-      const discountAmount = getTotalDiscount()
-      const taxRate = activeStore.tax_rate || 0
-      const taxableAmount = Math.max(0, subtotal - discountAmount)
-      const taxAmount = parseFloat((taxableAmount * (taxRate / 100)).toFixed(2))
-      const total = taxableAmount + taxAmount + parcelCharges
-
-      const orderPayload = {
-        store_id: activeStore.id,
-        cashier_id: user?.id || null,
-        order_type: selectedOrderType,
-        status,
-        payment_method: paymentMethod,
-        customer_name: null,
-        customer_phone: null,
-        subtotal,
-        discount_percent: discountPercent,
-        discount_amount: discountAmount,
-        parcel_charges: parcelCharges,
-        tax_amount: taxAmount,
-        total,
-        note: null,
+      const response = await submitOrder(orderPayload)
+      if (response?.success) {
+        // Prepare data for the invoice
+        setInvoiceData({
+          ...orderPayload,
+          id: response.orderId,
+          order_number: Date.now().toString().slice(-6),
+          created_at: new Date().toISOString()
+        })
+        cart.clearCart()
+        setMobileCartOpen(false)
       }
-
-      const itemsPayload = items.map((item) => ({
-        product_id: item.id,
-        product_name: item.name,
-        quantity: item.quantity,
-        unit_price: item.price,
-        discount_percent: item.discount_percent,
-        line_total: item.price * (1 - item.discount_percent / 100) * item.quantity,
-      }))
-
-      // Submit through offline-aware engine
-      await submitOrder({
-        order: orderPayload,
-        items: itemsPayload,
-      })
-
-      // Construct dummy order record for receipt printing modal fallback
-      const receiptOrder = {
-        ...orderPayload,
-        id: Math.random().toString(),
-        created_at: new Date().toISOString(),
-        order_number: 'OFF-' + Math.floor(1000 + Math.random() * 9000),
-        items: itemsPayload.map((item) => ({
-          ...item,
-          id: Math.random().toString(),
-          order_id: '',
-          created_at: new Date().toISOString(),
-        })),
-      }
-
-      clearCart()
-      setIsMobileCartOpen(false)
-
-      if (saveAndPrint) {
-        setInvoiceOrder(receiptOrder)
-      }
-    } catch (err) {
-      console.error('Checkout failed:', err)
+    } catch (e) {
+      console.error(e)
     }
   }
-
-  // Calculate live estimate total for floating mobile cart button
-  const currentSubtotal = getSubtotal()
-  const currentDiscount = getTotalDiscount()
-  const taxRate = activeStore.tax_rate || 0
-  const taxable = Math.max(0, currentSubtotal - currentDiscount)
-  const tax = parseFloat((taxable * (taxRate / 100)).toFixed(2))
-  const estimateTotal = taxable + tax + parcelCharges
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8.5rem)] lg:h-[calc(100vh-6.5rem)] overflow-hidden space-y-4 relative select-none pb-12 md:pb-0">
-      
-      {/* Top Bar: Order Type Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 bg-white/40 p-2 rounded-xl border border-white/50 shadow-sm flex-shrink-0 scrollbar-none whitespace-nowrap flex-nowrap w-full">
-        <span className="text-[10px] uppercase font-bold text-muted-foreground px-2 flex-shrink-0">Order Type:</span>
-        {visibleOrderTypes.map((type) => {
-          const isSelected = selectedOrderType === type.id
-          return (
-            <button
-              key={type.id}
-              onClick={() => setSelectedOrderType(type.id)}
-              className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold font-poppins border transition-all flex items-center gap-1.5 min-h-[44px]"
-              style={
-                isSelected
-                  ? { backgroundColor: activeStore.theme_color, color: '#ffffff', borderColor: activeStore.theme_color }
-                  : { backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#64748b' }
-              }
-            >
-              <span>{type.icon}</span>
-              <span>{type.label}</span>
-            </button>
-          )
-        })}
-      </div>
+    <div className="h-full flex flex-col lg:flex-row gap-6 relative">
+      {/* Left panel & middle grid container */}
+      <div className="flex-1 flex flex-col min-w-0">
+        
+        {/* Top filter bar: Order Type & Search */}
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between mb-4">
+          {/* Order Type pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
+            {orderTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => cart.setOrderType(type.id)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold font-body whitespace-nowrap transition-all ${
+                  cart.orderType === type.id
+                    ? 'text-white'
+                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                }`}
+                style={{
+                  backgroundColor: cart.orderType === type.id ? (activeStore?.theme_color || '#0f766e') : undefined
+                }}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
 
-      {categories.length === 0 ? (
-        <EmptyState
-          title="POS Setup Required"
-          message="You need to configure menu categories and products before you can start billing."
-          actionLabel="Go to Menu Management"
-          onAction={() => navigate('/menu')}
-        />
-      ) : (
-        /* Main Billing Layout Content */
-        <div className="flex-1 flex gap-4 overflow-hidden min-h-0 relative">
-          
-          {/* Desktop Left: Category Panel (horizontal scrolling on mobile, vertical sidebar on desktop) */}
-          <div className="hidden lg:block flex-shrink-0">
+          {/* Search bar */}
+          <div className="relative w-full sm:max-w-xs">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+              <Search className="w-4 h-4" />
+            </div>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search products..."
+              className="block w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900"
+            />
+          </div>
+        </div>
+
+        {/* Category List & Product Tiles */}
+        <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
+          <div className="shrink-0">
             <CategoryPanel
               categories={categories}
-              activeCategoryId={selectedCategoryId}
+              selectedCategoryId={selectedCategoryId}
               onSelectCategory={setSelectedCategoryId}
-              themeColor={activeStore.theme_color}
+              activeColor={activeStore?.theme_color || '#0f766e'}
             />
           </div>
 
-          {/* Center Column: Product Browser Catalog & Mobile Category list */}
-          <div className="flex-1 flex flex-col space-y-3 min-w-0">
-            {/* Mobile-only horizontal category slider */}
-            <div className="lg:hidden flex-shrink-0">
-              <CategoryPanel
-                categories={categories}
-                activeCategoryId={selectedCategoryId}
-                onSelectCategory={setSelectedCategoryId}
-                themeColor={activeStore.theme_color}
-              />
-            </div>
-
+          <div className="flex-1 min-h-0">
             <ProductGrid
-              products={categoryProducts}
-              onAddCartItem={handleAddCartItem}
-              currencySymbol={activeStore.currency_symbol}
+              products={filteredProducts}
+              onAddProduct={(p) => cart.addItem({
+                product_id: p.id,
+                product_name: p.name,
+                price: Number(p.price),
+                discount_percent: 0,
+                unit: p.unit || 'pc'
+              })}
+              currencySymbol={activeStore?.currency_symbol || '₹'}
             />
           </div>
+        </div>
+      </div>
 
-          {/* Desktop Right Column: Cart Panel */}
-          <div className="hidden lg:block flex-shrink-0">
-            <CartPanel
-              activeStore={activeStore}
-              onCheckout={handleCheckout}
-            />
-          </div>
+      {/* Right panel: Persistent Cart (Desktop only) */}
+      <div className="hidden lg:block w-[340px] shrink-0 bg-white rounded-3xl border border-gray-100 shadow-md p-4 flex flex-col h-[calc(100vh-8.5rem)] sticky top-[5.5rem]">
+        <CartPanel
+          cart={cart}
+          onCheckout={handleCheckout}
+          currencySymbol={activeStore?.currency_symbol || '₹'}
+        />
+      </div>
 
-          {/* Mobile Floating Cart Summary Drawer Trigger Button */}
-          {items.length > 0 && (
-            <div className="lg:hidden fixed bottom-[76px] left-4 right-4 z-30 px-1">
+      {/* Floating Cart Button (Mobile only) */}
+      <button
+        onClick={() => setMobileCartOpen(true)}
+        className="fixed bottom-20 right-6 lg:hidden z-40 p-4 rounded-full text-white shadow-xl flex items-center gap-2 active:scale-95 transition-transform"
+        style={{ backgroundColor: activeStore?.theme_color || '#0f766e' }}
+      >
+        <ShoppingBag className="w-6 h-6" />
+        <span className="bg-white text-gray-950 font-bold text-xs px-2 py-0.5 rounded-full border border-gray-100">
+          {cart.items.reduce((total, i) => total + i.quantity, 0)}
+        </span>
+        <span className="font-bold text-sm">
+          {activeStore?.currency_symbol || '₹'}{cart.total}
+        </span>
+      </button>
+
+      {/* Mobile Cart Bottom Sheet */}
+      {mobileCartOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileCartOpen(false)} />
+          {/* Sheet */}
+          <div className="absolute bottom-0 left-0 right-0 h-[85vh] bg-white rounded-t-3xl shadow-2xl flex flex-col p-4 animate-slide-up pb-safe">
+            <div className="flex justify-between items-center pb-3 border-b border-gray-100 mb-3">
+              <h3 className="font-bold text-gray-900 font-heading flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-[#0f766e]" /> Selected Items
+              </h3>
               <button
-                onClick={() => setIsMobileCartOpen(true)}
-                className="w-full shadow-lg text-white px-4 py-3 rounded-xl flex items-center justify-between font-bold transition-all min-h-[48px] hover:scale-[1.02] active:scale-95 animate-in fade-in slide-in-from-bottom duration-250"
-                style={{ backgroundColor: activeStore.theme_color }}
+                onClick={() => setMobileCartOpen(false)}
+                className="p-1 rounded-lg bg-gray-50 text-gray-500 hover:text-gray-950 hover:bg-gray-100 transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <ShoppingBag className="w-5 h-5" />
-                    <span className="absolute -top-2 -right-2 bg-white text-primary text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center border shadow-sm">
-                      {items.reduce((sum, i) => sum + i.quantity, 0)}
-                    </span>
-                  </div>
-                  <span className="text-xs uppercase tracking-wider ml-1">View Checkout Cart</span>
-                </div>
-                <div className="text-sm font-extrabold">
-                  {formatCurrency(estimateTotal, activeStore.currency_symbol)}
-                </div>
+                <X className="w-5 h-5" />
               </button>
             </div>
-          )}
-
-          {/* Mobile Cart Overlay Slide-up Sheet */}
-          {isMobileCartOpen && (
-            <div className="lg:hidden fixed inset-0 z-40 flex flex-col justify-end">
-              {/* Backdrop */}
-              <div
-                className="fixed inset-0 bg-black/40 backdrop-blur-xs"
-                onClick={() => setIsMobileCartOpen(false)}
+            
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <CartPanel
+                cart={cart}
+                onCheckout={handleCheckout}
+                currencySymbol={activeStore?.currency_symbol || '₹'}
               />
-              {/* Slide-up Container */}
-              <div className="bg-white rounded-t-3xl relative z-50 p-4 h-[85vh] overflow-hidden flex flex-col border-t shadow-2xl animate-in slide-in-from-bottom duration-250">
-                <div 
-                  className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 cursor-grab active:cursor-grabbing flex-shrink-0 min-h-[6px]" 
-                  onClick={() => setIsMobileCartOpen(false)} 
-                />
-                <div className="overflow-y-auto flex-1 pb-safe pb-[env(safe-area-inset-bottom)] scroll-smooth">
-                  <CartPanel
-                    activeStore={activeStore}
-                    onCheckout={handleCheckout}
-                  />
-                </div>
-              </div>
             </div>
-          )}
-
+          </div>
         </div>
       )}
 
-      {/* Invoice Modal for receipt preview and printing */}
-      {invoiceOrder && (
+      {/* Invoice Receipt Modal */}
+      {invoiceData && (
         <InvoiceModal
-          isOpen={!!invoiceOrder}
-          onClose={() => setInvoiceOrder(null)}
-          order={invoiceOrder}
+          isOpen={true}
+          onClose={() => setInvoiceData(null)}
+          order={invoiceData}
           store={activeStore}
         />
       )}
 
-      {/* Cache notification indicator */}
-      {isFromCache && (
-        <div className="absolute bottom-2 left-2 bg-yellow-100 border border-yellow-200 text-yellow-800 text-[10px] px-2 py-0.5 rounded-full font-bold shadow-xs flex items-center gap-1">
-          <span>⚠️ Showing Offline Cached Catalog</span>
-        </div>
-      )}
+      <style>{`
+        @keyframes slide-up {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
     </div>
   )
 }

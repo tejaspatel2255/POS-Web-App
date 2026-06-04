@@ -1,58 +1,90 @@
-// File Path: d:/Projects/Web/Universal POS/src/components/pos/CategoryPanel.tsx
-
-import type { Category } from '@/types'
+// src/components/pos/CategoryPanel.tsx
+import React from 'react'
+import { Category } from '../../types'
 
 interface CategoryPanelProps {
   categories: Category[]
-  activeCategoryId: string | null
+  selectedCategoryId: string | null
   onSelectCategory: (id: string | null) => void
-  themeColor?: string
+  activeColor: string
 }
 
 export default function CategoryPanel({
   categories,
-  activeCategoryId,
+  selectedCategoryId,
   onSelectCategory,
-  themeColor = '#0f766e',
+  activeColor,
 }: CategoryPanelProps) {
   return (
-    <aside className="w-full lg:w-48 bg-white/40 border border-white/50 rounded-2xl p-2.5 flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto lg:h-full scrollbar-none whitespace-nowrap flex-nowrap lg:flex-wrap lg:whitespace-normal">
-      {/* "All" category selector */}
-      <button
-        onClick={() => onSelectCategory(null)}
-        className="flex-shrink-0 px-4 py-2.5 rounded-xl text-xs font-bold font-poppins transition-all duration-200 flex items-center gap-2 border border-white/30 min-h-[44px] min-w-max"
-        style={
-          activeCategoryId === null
-            ? { backgroundColor: themeColor, color: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }
-            : { backgroundColor: '#ffffff', color: 'inherit' }
-        }
-      >
-        <span className="text-base">📋</span>
-        <span>All Items</span>
-      </button>
-
-      {categories.map((cat) => {
-        const isActive = activeCategoryId === cat.id
-        return (
+    <div className="w-full">
+      {/* Mobile Horizontal Pill Scroll */}
+      <div className="flex md:hidden items-center gap-2 overflow-x-auto pb-3 w-full scrollbar-none">
+        <button
+          onClick={() => onSelectCategory(null)}
+          className="px-4 py-2 rounded-xl text-xs font-bold font-body whitespace-nowrap transition-all border"
+          style={{
+            borderColor: selectedCategoryId === null ? activeColor : '#e5e7eb',
+            backgroundColor: selectedCategoryId === null ? `${activeColor}10` : '#f9fafb',
+            color: selectedCategoryId === null ? activeColor : '#6b7280',
+          }}
+        >
+          📦 All Products
+        </button>
+        {categories.map((cat) => (
           <button
             key={cat.id}
             onClick={() => onSelectCategory(cat.id)}
-            className="flex-shrink-0 px-4 py-2.5 rounded-xl text-xs font-bold font-poppins transition-all duration-200 flex items-center gap-2 border border-white/30 truncate min-h-[44px] min-w-[125px] justify-start"
-            style={
-              isActive
-                ? { backgroundColor: themeColor, color: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }
-                : { backgroundColor: '#ffffff', color: 'inherit' }
-            }
+            className="px-4 py-2 rounded-xl text-xs font-bold font-body whitespace-nowrap transition-all border flex items-center gap-1.5"
+            style={{
+              borderColor: selectedCategoryId === cat.id ? activeColor : '#e5e7eb',
+              backgroundColor: selectedCategoryId === cat.id ? `${activeColor}10` : '#f9fafb',
+              color: selectedCategoryId === cat.id ? activeColor : '#6b7280',
+            }}
           >
             <span
-              className="w-2.5 h-2.5 rounded-full border border-white shadow-inner flex-shrink-0"
-              style={isActive ? { backgroundColor: '#ffffff' } : { backgroundColor: cat.color }}
+              className="w-2 h-2 rounded-full inline-block"
+              style={{ backgroundColor: cat.color || activeColor }}
             />
-            {cat.icon && <span className="text-base flex-shrink-0">{cat.icon}</span>}
-            <span className="truncate">{cat.name}</span>
+            <span>
+              {cat.icon} {cat.name}
+            </span>
           </button>
-        )
-      })}
-    </aside>
+        ))}
+      </div>
+
+      {/* Desktop Vertical Scrollable List */}
+      <div className="hidden md:flex flex-col gap-2 w-[180px] overflow-y-auto max-h-[calc(100vh-14.5rem)] pr-1">
+        <button
+          onClick={() => onSelectCategory(null)}
+          className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-semibold font-body text-left border transition-all hover:bg-gray-50 active:scale-[0.98]"
+          style={{
+            borderColor: selectedCategoryId === null ? activeColor : '#f3f4f6',
+            backgroundColor: selectedCategoryId === null ? `${activeColor}10` : '#ffffff',
+            color: selectedCategoryId === null ? activeColor : '#4b5563',
+          }}
+        >
+          <span className="text-lg">📦</span>
+          <span className="truncate">All Products</span>
+        </button>
+
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => onSelectCategory(cat.id)}
+            className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-semibold font-body text-left border transition-all hover:bg-gray-50 active:scale-[0.98]"
+            style={{
+              borderColor: selectedCategoryId === cat.id ? activeColor : '#f3f4f6',
+              backgroundColor: selectedCategoryId === cat.id ? `${cat.color}12` : '#ffffff',
+              color: selectedCategoryId === cat.id ? activeColor : '#4b5563',
+            }}
+          >
+            <span className="text-lg shrink-0">{cat.icon || '📦'}</span>
+            <div className="flex flex-col min-w-0 leading-tight">
+              <span className="truncate font-semibold">{cat.name}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }

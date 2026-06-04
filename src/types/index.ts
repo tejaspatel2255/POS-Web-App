@@ -1,17 +1,16 @@
-// File Path: d:/Projects/Web/Universal POS/src/types/index.ts
+// src/types/index.ts
 
 export type UserRole = 'owner' | 'admin' | 'cashier';
 
 export interface Store {
   id: string;
   name: string;
-  tagline: string | null;
-  logo_url: string | null;
-  address: string | null;
-  phone: string | null;
-  email: string | null;
+  tagline?: string;
+  logo_url?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
   currency_symbol: string;
-  currency_code: string;
   tax_rate: number;
   default_parcel_charges: number;
   receipt_footer: string;
@@ -26,9 +25,10 @@ export interface StoreMember {
   store_id: string;
   user_id: string;
   role: UserRole;
-  full_name: string | null;
+  full_name: string;
   is_active: boolean;
   created_at: string;
+  stores?: Store; // Joined store details
 }
 
 export interface Category {
@@ -45,13 +45,12 @@ export interface Category {
 export interface Product {
   id: string;
   store_id: string;
-  category_id: string | null;
+  category_id?: string | null;
   name: string;
-  description: string | null;
+  description?: string;
   price: number;
   cost_price: number;
-  image_url: string | null;
-  barcode: string | null;
+  image_url?: string;
   unit: string;
   is_available: boolean;
   sort_order: number;
@@ -61,46 +60,50 @@ export interface Product {
 export interface Order {
   id: string;
   store_id: string;
-  cashier_id: string | null;
-  order_number: number | null;
-  order_type: 'dine_in' | 'takeaway' | 'delivery' | 'parcel' | 'walk_in';
+  cashier_id?: string;
+  cashier_name?: string;
+  order_number: number;
+  order_type: 'walk_in' | 'dine_in' | 'takeaway' | 'parcel' | 'delivery';
   status: 'pending' | 'completed' | 'cancelled' | 'on_hold';
   payment_method: 'cash' | 'card' | 'upi' | 'other';
-  customer_name: string | null;
-  customer_phone: string | null;
+  customer_name?: string;
+  customer_phone?: string;
   subtotal: number;
   discount_percent: number;
   discount_amount: number;
   parcel_charges: number;
   tax_amount: number;
   total: number;
-  note: string | null;
+  note?: string;
   is_synced: boolean;
-  scheduled_at: string | null;
   created_at: string;
+  order_items?: OrderItem[]; // Joined order items
 }
 
 export interface OrderItem {
   id: string;
   order_id: string;
-  product_id: string | null;
+  product_id?: string | null;
   product_name: string;
   quantity: number;
   unit_price: number;
   discount_percent: number;
   line_total: number;
-  created_at: string;
 }
 
 export interface StoreSettings {
   id: string;
   store_id: string;
   key: string;
-  value: string | null;
+  value: string;
 }
 
-export interface CartItem extends Product {
-  cart_item_id: string;
+export interface CartItem {
+  product_id: string;
+  product_name: string;
+  price: number;
   quantity: number;
+  unit: string;
   discount_percent: number;
+  image_url?: string;
 }

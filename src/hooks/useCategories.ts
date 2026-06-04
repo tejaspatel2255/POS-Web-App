@@ -1,79 +1,91 @@
-// File Path: d:/Projects/Web/Universal POS/src/hooks/useCategories.ts
-
+// src/hooks/useCategories.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '../lib/supabaseClient'
-import type { Category } from '../types'
+import { supabase } from '../lib/supabase'
+import { Category } from '../types'
+import { cacheCategories, getCachedCategories } from '../lib/offlineDb'
 
-export function useCategories(storeId: string | null | undefined) {
-  return useQuery({
+export function useCategories(storeId: string | undefined) {
+  return useQuery<Category[]>({
     queryKey: ['categories', storeId],
     queryFn: async () => {
       if (!storeId) return []
-      const { data, error } = await (supabase
-        .from('categories') as any)
-        .select('*')
-        .eq('store_id', storeId)
-        .order('sort_order', { ascending: true })
-      
-      if (error) throw error
-      return data as Category[]
+
+      if (navigator.onLine) {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('store_id', storeId)
+          .order('sort_order', { ascending: true })
+
+        if (error) throw error
+        const categories = data || []
+        // Save to offline cache
+        await cacheCategories(storeId, categories)
+        return categories
+      } else {
+        // Retrieve from offline cache
+        return getCachedCategories(storeId)
+      }
     },
     enabled: !!storeId,
   })
 }
 
-export function useCreateCategory() {
+export function useCreateCategory(storeId: string | undefined) {
   const queryClient = useQueryClient()
+
   return useMutation({
-    mutationFn: async (newCategory: Omit<Category, 'id' | 'created_at'>) => {
-      const { data, error } = await (supabase
-        .from('categories') as any)
-        .insert(newCategory)
+    mutationFn: async (newCategory: Omit<Category, 'id' | 'created_at' | 'store_id'>) => {
+      if (!storeId) throw new Error('No active store')
+
+      const { data, error } = await supabase
+        .from('categories')
+        .insert([{ ...newCategory, store_id: storeId }])
         .select()
         .single()
+
       if (error) throw error
       return data as Category
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['categories', data.store_id] })
-    }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', storeId] })
+    },
   })
 }
 
-export function useUpdateCategory() {
+export function useUpdateCategory(storeId: string | undefined) {
   const queryClient = useQueryClient()
+
   return useMutation({
-    mutationFn: async ({ id, store_id: _store_id, changes }: { id: string; store_id: string; changes: Partial<Category> }) => {
-      const { data, error } = await (supabase
-        .from('categories') as any)
-        .update(changes)
+    mutationFn: async (category: Partial<Category> & { id: string }) => {
+      const { id, ...updateFields } = category
+      const { data, error } = await supabase
+        .from('categories')
+        .update(updateFields)
         .eq('id', id)
         .select()
         .single()
+
       if (error) throw error
       return data as Category
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['categories', data.store_id] })
-    }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', storeId] })
+    },
   })
 }
 
-export function useDeleteCategory() {
+export function useDeleteCategory(storeId: string | undefined) {
   const queryClient = useQueryClient()
+
   return useMutation({
-    mutationFn: async ({ id, store_id }: { id: string; store_id: string }) => {
-      const { error } = await (supabase
-        .from('categories') as any)
-        .delete()
-        .eq('id', id)
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('categories').delete().eq('id', id)
       if (error) throw error
-      return { id, store_id }
+      return id
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['categories', data.store_id] })
-      // Products might belong to the deleted category, so invalidate products too
-      queryClient.invalidateQueries({ queryKey: ['products', data.store_id] })
-    }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', storeId] })
+    },
   })
 }

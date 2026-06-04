@@ -1,264 +1,342 @@
-// File Path: d:/Projects/Web/Universal POS/src/pages/menu/CategoriesTab.tsx
-
-import { useState } from 'react'
-import { Plus, Edit3, Trash2, ShieldAlert } from 'lucide-react'
+// src/pages/menu/CategoriesTab.tsx
+import React, { useState } from 'react'
+import { useAuthStore } from '../../store/authStore'
 import {
   useCategories,
   useCreateCategory,
   useUpdateCategory,
   useDeleteCategory,
-} from '@/hooks/useCategories'
-import CategoryFormModal from '@/components/pos/CategoryFormModal'
-import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
-import { Button } from '@/components/ui/button'
-import type { Category } from '@/types'
+} from '../../hooks/useCategories'
+import { Category } from '../../types'
+import { toast } from '../../components/shared/Toast'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
+import EmptyState from '../../components/shared/EmptyState'
+import { Plus, Edit2, Trash2, FolderTree, Loader2, ToggleLeft, ToggleRight, X } from 'lucide-react'
 
-interface CategoriesTabProps {
-  storeId: string
-}
+const colorSwatches = [
+  '#0f766e', // Teal
+  '#3b82f6', // Blue
+  '#6366f1', // Indigo
+  '#8b5cf6', // Purple
+  '#ec4899', // Pink
+  '#f43f5e', // Rose
+  '#f97316', // Orange
+  '#eab308', // Yellow
+  '#10b981', // Emerald
+  '#64748b', // Slate
+]
 
-export default function CategoriesTab({ storeId }: CategoriesTabProps) {
+export default function CategoriesTab() {
+  const { activeStore } = useAuthStore()
+  const storeId = activeStore?.id
+
   const { data: categories = [], isLoading } = useCategories(storeId)
-  
-  const createMutation = useCreateCategory()
-  const updateMutation = useUpdateCategory()
-  const deleteMutation = useDeleteCategory()
+  const createMutation = useCreateCategory(storeId)
+  const updateMutation = useUpdateCategory(storeId)
+  const deleteMutation = useDeleteCategory(storeId)
 
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+  // Modal / Form States
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   
-  // Custom Delete Confirm State
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [name, setName] = useState('')
+  const [color, setColor] = useState(colorSwatches[0])
+  const [icon, setIcon] = useState('📦')
+  const [sortOrder, setSortOrder] = useState(0)
 
-  const handleOpenAddModal = () => {
-    setSelectedCategory(null)
-    setIsModalOpen(true)
+  // Confirm Delete state
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+
+  const openAddModal = () => {
+    setEditingCategory(null)
+    setName('')
+    setColor(colorSwatches[0])
+    setIcon('📦')
+    setSortOrder(categories.length)
+    setModalOpen(true)
   }
 
-  const handleOpenEditModal = (category: Category) => {
-    setSelectedCategory(category)
-    setIsModalOpen(true)
+  const openEditModal = (cat: Category) => {
+    setEditingCategory(cat)
+    setName(cat.name)
+    setColor(cat.color || colorSwatches[0])
+    setIcon(cat.icon || '📦')
+    setSortOrder(cat.sort_order || 0)
+    setModalOpen(true)
   }
 
-  const handleFormSubmit = async (values: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) {
+      toast.error('Category name is required')
+      return
+    }
+
+    const payload = {
+      name,
+      color,
+      icon,
+      sort_order: sortOrder,
+      is_active: editingCategory ? editingCategory.is_active : true,
+    }
+
     try {
-      if (selectedCategory) {
-        await updateMutation.mutateAsync({
-          id: selectedCategory.id,
-          store_id: storeId,
-          changes: values,
-        })
+      if (editingCategory) {
+        await updateMutation.mutateAsync({ ...payload, id: editingCategory.id })
+        toast.success('Category updated successfully')
       } else {
-        await createMutation.mutateAsync({
-          store_id: storeId,
-          ...values,
-        })
+        await createMutation.mutateAsync(payload)
+        toast.success('Category created successfully')
       }
-      setIsModalOpen(false)
-    } catch (err) {
-      console.error('Failed to submit category form:', err)
+      setModalOpen(false)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save category')
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleToggleActive = async (cat: Category) => {
     try {
-      await deleteMutation.mutateAsync({ id, store_id: storeId })
-      setDeleteConfirmId(null)
-    } catch (err) {
-      console.error('Failed to delete category:', err)
+      await updateMutation.mutateAsync({
+        id: cat.id,
+        is_active: !cat.is_active,
+      })
+      toast.success(`Category ${!cat.is_active ? 'enabled' : 'disabled'}`)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update category state')
+    }
+  }
+
+  const handleDeleteClick = (id: string) => {
+    setDeleteTargetId(id)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId) return
+    try {
+      await deleteMutation.mutateAsync(deleteTargetId)
+      toast.success('Category deleted')
+      setDeleteConfirmOpen(false)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete category')
     }
   }
 
   if (isLoading) {
-    return <LoadingSkeleton variant="table" count={5} />
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-8 h-8 animate-spin text-[#0f766e]" />
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-4 pb-20 md:pb-0">
-      {/* Tab Actions */}
-      <div className="flex justify-between items-center bg-white/40 p-4 rounded-xl border border-white/50 shadow-sm">
-        <span className="text-xs sm:text-sm font-semibold text-muted-foreground">
-          Total Categories: {categories.length}
+    <div className="space-y-4">
+      {/* Top Action */}
+      <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+        <span className="text-sm font-semibold font-body text-gray-500">
+          Total Categories: <strong className="text-gray-800">{categories.length}</strong>
         </span>
-        <Button onClick={handleOpenAddModal} className="hidden md:flex bg-primary hover:bg-primary/90 items-center gap-2 min-h-[44px]">
-          <Plus className="w-4 h-4" />
-          Add Category
-        </Button>
+        <button
+          onClick={openAddModal}
+          className="flex items-center gap-1.5 px-4 py-2.5 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-bold font-body text-xs shadow-md shadow-[#0f766e]/10 active:scale-95 transition-transform"
+        >
+          <Plus className="w-4 h-4" /> Add Category
+        </button>
       </div>
 
       {categories.length === 0 ? (
-        <EmptyState
-          title="No categories found"
-          message="Create categories to organize your store's products on the POS menu."
-          actionLabel="Create First Category"
-          onAction={handleOpenAddModal}
-        />
+        <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex items-center justify-center min-h-[300px]">
+          <EmptyState
+            icon={<FolderTree className="w-8 h-8 text-gray-400" />}
+            title="No Categories Available"
+            description="Create categories to organize your store inventory items."
+            actionText="Add First Category"
+            onAction={openAddModal}
+          />
+        </div>
       ) : (
-        <>
-          {/* Desktop Table View */}
-          <div className="hidden md:block border border-white/50 bg-white/40 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* Mobile Card list / Desktop Table */}
+          <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="p-4 text-xs font-bold text-muted-foreground uppercase w-12 text-center">Color</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground uppercase w-12 text-center">Icon</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground uppercase">Category Name</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground uppercase w-28 text-center">Sort Order</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground uppercase w-28 text-center">Status</th>
-                  <th className="p-4 text-xs font-bold text-muted-foreground uppercase w-24 text-center">Actions</th>
+                <tr className="border-b border-gray-100 text-[10px] uppercase font-bold tracking-wider text-gray-400 font-body bg-gray-50/50">
+                  <th className="p-4 w-12 text-center">Color</th>
+                  <th className="p-4">Category Details</th>
+                  <th className="p-4 text-center w-24">Sort Order</th>
+                  <th className="p-4 text-center w-24">Status</th>
+                  <th className="p-4 text-right w-28">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-50 text-sm font-body text-gray-700">
                 {categories.map((cat) => (
-                  <tr key={cat.id} className="border-b hover:bg-white/60 transition-colors">
+                  <tr key={cat.id} className="hover:bg-gray-50/30">
                     <td className="p-4 text-center">
                       <span
-                        className="inline-block w-4 h-4 rounded-full border border-white shadow-sm"
+                        className="w-5 h-5 rounded-full inline-block border border-gray-200/50 shadow-sm"
                         style={{ backgroundColor: cat.color }}
                       />
                     </td>
-                    <td className="p-4 text-center text-xl">{cat.icon}</td>
-                    <td className="p-4 font-bold text-foreground">{cat.name}</td>
-                    <td className="p-4 text-center font-medium text-muted-foreground">{cat.sort_order}</td>
-                    <td className="p-4 text-center">
-                      <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
-                          cat.is_active
-                            ? 'bg-green-50 text-green-700 border-green-200'
-                            : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                        }`}
-                      >
-                        {cat.is_active ? 'Active' : 'Inactive'}
+                    <td className="p-4 font-bold text-gray-900">
+                      <span className="text-xl mr-2" role="img" aria-label={cat.name}>
+                        {cat.icon || '📦'}
                       </span>
+                      <span>{cat.name}</span>
+                    </td>
+                    <td className="p-4 text-center font-semibold text-gray-500">
+                      {cat.sort_order}
                     </td>
                     <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => handleOpenEditModal(cat)}
-                          className="p-1.5 rounded bg-white hover:bg-primary/10 text-primary border border-muted/50 transition-colors min-h-[44px]"
-                          title="Edit Category"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmId(cat.id)}
-                          className="p-1.5 rounded bg-white hover:bg-destructive/10 text-destructive border border-muted/50 transition-colors min-h-[44px]"
-                          title="Delete Category"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleToggleActive(cat)}
+                        className={`transition-colors focus:outline-none ${
+                          cat.is_active ? 'text-[#0f766e]' : 'text-gray-350'
+                        }`}
+                      >
+                        {cat.is_active ? (
+                          <ToggleRight className="w-10 h-6 stroke-[1.5]" />
+                        ) : (
+                          <ToggleLeft className="w-10 h-6 stroke-[1.5]" />
+                        )}
+                      </button>
+                    </td>
+                    <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                      <button
+                        onClick={() => openEditModal(cat)}
+                        className="p-2 text-gray-450 hover:text-[#0f766e] hover:bg-gray-150 rounded-lg transition-colors inline-block"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(cat.id)}
+                        className="p-2 text-gray-455 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-block"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
-          {/* Mobile Card List View */}
-          <div className="block md:hidden space-y-3">
-            {categories.map((cat) => (
-              <div key={cat.id} className="p-4 bg-white border border-muted/30 rounded-xl shadow-sm flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className="inline-block w-3.5 h-3.5 rounded-full border border-white shadow-sm flex-shrink-0"
-                      style={{ backgroundColor: cat.color }}
-                    />
-                    <span className="text-xl leading-none flex-shrink-0">{cat.icon}</span>
-                    <span className="font-bold text-foreground text-sm">{cat.name}</span>
-                  </div>
-                  <span
-                    className={`text-[9px] uppercase px-2 py-0.5 rounded-full font-bold border ${
-                      cat.is_active
-                        ? 'bg-green-50 text-green-700 border-green-200'
-                        : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                    }`}
-                  >
-                    {cat.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between pt-2.5 border-t border-muted/10">
-                  <span className="text-[10px] text-muted-foreground font-semibold">
-                    Sort Order: <span className="text-foreground font-bold">{cat.sort_order}</span>
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => handleOpenEditModal(cat)}
-                      className="p-2.5 rounded bg-white hover:bg-primary/10 text-primary border border-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                      title="Edit Category"
-                    >
-                      <Edit3 className="w-4.5 h-4.5" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirmId(cat.id)}
-                      className="p-2.5 rounded bg-white hover:bg-destructive/10 text-destructive border border-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                      title="Delete Category"
-                    >
-                      <Trash2 className="w-4.5 h-4.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
+        </div>
       )}
 
-      {/* Floating Add Category Button for Mobile Only */}
-      <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/90 to-background/0 z-40">
-        <Button
-          onClick={handleOpenAddModal}
-          className="w-full bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 font-bold shadow-lg min-h-[48px] text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Add Category
-        </Button>
-      </div>
+      {/* Category Editor Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
+          <div className="relative bg-white rounded-3xl max-w-md w-full shadow-2xl border border-gray-100 p-6 animate-zoom-in">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-450 hover:text-gray-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold text-gray-900 font-heading mb-4">
+              {editingCategory ? 'Edit Category' : 'Create Category'}
+            </h3>
 
-      {/* Category Add/Edit Modal */}
-      <CategoryFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleFormSubmit}
-        category={selectedCategory}
-        loading={createMutation.isPending || updateMutation.isPending}
-      />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Category Name */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+                  placeholder="e.g. Desserts, Beverages"
+                />
+              </div>
 
-      {/* Custom Delete Confirmation Dialog */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm border border-muted text-center space-y-4">
-            <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
-              <ShieldAlert className="w-6 h-6" />
-            </div>
-            <div className="space-y-1.5">
-              <h3 className="text-lg font-bold font-poppins text-foreground">Confirm Category Deletion</h3>
-              <p className="text-xs text-muted-foreground">
-                This will hide all products currently assigned to this category on the billing POS. Do you wish to continue?
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => setDeleteConfirmId(null)}
-                disabled={deleteMutation.isPending}
-              >
-                No, Keep It
-              </Button>
-              <Button
-                onClick={() => handleDelete(deleteConfirmId)}
-                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                disabled={deleteMutation.isPending}
-              >
-                {deleteMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
-              </Button>
-            </div>
+              {/* Emoji Icon */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Emoji Icon
+                </label>
+                <input
+                  type="text"
+                  value={icon}
+                  onChange={(e) => setIcon(e.target.value)}
+                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900"
+                  placeholder="e.g. 🍰, 🥤, 💊"
+                />
+              </div>
+
+              {/* Color Swatches Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2.5 font-body">
+                  Theme Color Selection
+                </label>
+                <div className="grid grid-cols-5 gap-2">
+                  {colorSwatches.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setColor(c)}
+                      className={`w-8 h-8 rounded-full border-2 transition-transform active:scale-90 ${
+                        color === c ? 'border-gray-900 scale-105' : 'border-transparent hover:scale-102'
+                      }`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Sort Order */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Sort Order
+                </label>
+                <input
+                  type="number"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(Number(e.target.value))}
+                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+                  placeholder="e.g. 0"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold font-body text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="px-4 py-2 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-bold font-body text-xs transition-colors shadow-md flex items-center gap-1.5"
+                >
+                  {(createMutation.isPending || updateMutation.isPending) && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  )}
+                  <span>Save</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Delete Category"
+        message="Are you sure you want to delete this category? All products under it will have their category unassigned."
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   )
 }

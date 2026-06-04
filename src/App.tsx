@@ -1,148 +1,105 @@
-// File Path: d:/Projects/Web/Universal POS/src/App.tsx
-
-import React, { Suspense, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AuthProvider } from './contexts/AuthContext'
-import { startSyncEngine } from './lib/syncEngine'
+// src/App.tsx
+import { useState, useEffect, Suspense, lazy } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
-import { supabase } from './lib/supabaseClient'
+import { supabase } from './lib/supabase'
+import type { Store, StoreMember } from './types'
+import FullPageSpinner from './components/shared/FullPageSpinner.tsx'
+import { ToastContainer } from './components/shared/Toast'
 
-// Layout
-import AppShell from './components/layout/AppShell'
-import { ProtectedRoute } from './components/layout/ProtectedRoute'
 
-// Lazy loaded page components
-const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'))
-const RegisterPage = React.lazy(() => import('./pages/auth/RegisterPage'))
-const CreateStorePage = React.lazy(() => import('./pages/auth/CreateStorePage'))
-const SelectStorePage = React.lazy(() => import('./pages/auth/SelectStorePage'))
+// Lazy-loaded routes
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
+const CreateStorePage = lazy(() => import('./pages/auth/CreateStorePage'))
+const SelectStorePage = lazy(() => import('./pages/auth/SelectStorePage'))
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'))
+const BillingScreen = lazy(() => import('./pages/billing/BillingScreen'))
+const OrderHistory = lazy(() => import('./pages/orders/OrderHistory'))
+const MenuManagement = lazy(() => import('./pages/menu/MenuManagement'))
+const Reports = lazy(() => import('./pages/reports/Reports'))
+const Settings = lazy(() => import('./pages/settings/Settings'))
 
-const Dashboard = React.lazy(() => import('./pages/dashboard/Dashboard'))
-const Billing = React.lazy(() => import('./pages/billing/BillingScreen'))
-const MenuManagement = React.lazy(() => import('./pages/menu/MenuManagement'))
-const OrderHistory = React.lazy(() => import('./pages/orders/OrderHistory'))
-const Reports = React.lazy(() => import('./pages/reports/Reports'))
-const Settings = React.lazy(() => import('./pages/settings/Settings'))
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 10,
-      retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: true,
-    },
-  },
-})
+// Layout / Route wrappers
+const ProtectedRoute = lazy(() => import('./components/layout/ProtectedRoute'))
+const AppShell = lazy(() => import('./components/layout/AppShell'))
 
 export default function App() {
-  const { logout } = useAuthStore()
+  const [authReady, setAuthReady] = useState(false)
+  const { user, activeStore, setUser, setActiveStore, setActiveMember, logout } = useAuthStore()
 
   useEffect(() => {
-    const cleanup = startSyncEngine()
+    // Hard 5-second timeout so spinner NEVER gets stuck forever
+    const timer = setTimeout(() => setAuthReady(true), 5000)
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user)
+        // If no activeStore in zustand yet, fetch it
+        if (!activeStore) {
+          const { data: memberships } = await supabase
+            .from('store_members')
+            .select('*, stores(*)')
+            .eq('user_id', session.user.id)
+            .eq('is_active', true) as any
+            
+          if (memberships?.length === 1) {
+            setActiveStore(memberships[0].stores as Store)
+            setActiveMember(memberships[0] as StoreMember)
+          }
+        }
+      } else {
         logout()
       }
-    })
+    }).catch(() => logout())
+     .finally(() => {
+       clearTimeout(timer)
+       setAuthReady(true)
+     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event) => {
-        if (event === 'SIGNED_OUT') {
-          logout()
-        }
+        if (event === 'SIGNED_OUT') logout()
       }
     )
-
     return () => {
-      cleanup()
       subscription.unsubscribe()
+      clearTimeout(timer)
     }
-  }, [logout])
+  }, [])
+
+  if (!authReady) return <FullPageSpinner />
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <Suspense fallback={
-            <div className="flex items-center justify-center h-screen">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
-            </div>
-          }>
-            <Routes>
-              {/* Public Authentication Routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              
-              {/* Store Selection and Creation (Required: Logged In, Allowed: No Active Store) */}
-              <Route 
-                path="/select-store" 
-                element={
-                  <ProtectedRoute>
-                    <SelectStorePage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/create-store" 
-                element={
-                  <ProtectedRoute>
-                    <CreateStorePage />
-                  </ProtectedRoute>
-                } 
-              />
-
-              {/* Protected Workspace POS Routes */}
-              <Route 
-                path="/" 
-                element={
-                  <ProtectedRoute>
-                    <AppShell />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Dashboard />} />
-                <Route path="billing" element={<Billing />} />
-                <Route path="history" element={<OrderHistory />} />
-                
-                {/* Admin & Owner level routes */}
-                <Route 
-                  path="menu" 
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <MenuManagement />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="reports" 
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Reports />
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                {/* Owner only routes */}
-                <Route 
-                  path="settings" 
-                  element={
-                    <ProtectedRoute requiredRole="owner">
-                      <Settings />
-                    </ProtectedRoute>
-                  } 
-                />
+    <>
+      <ToastContainer />
+      <BrowserRouter>
+        <Suspense fallback={<FullPageSpinner />}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/create-store" element={<CreateStorePage />} />
+            <Route path="/select-store" element={<SelectStorePage />} />
+            <Route path="/" element={
+              user ? (activeStore ? <Navigate to="/dashboard" replace /> : <Navigate to="/select-store" replace />)
+                   : <Navigate to="/login" replace />
+            } />
+            
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppShell />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/billing" element={<BillingScreen />} />
+                <Route path="/orders" element={<OrderHistory />} />
+                <Route path="/menu" element={<MenuManagement />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
-
-              {/* Fallback Catch-all Route */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </Router>
-      </AuthProvider>
-    </QueryClientProvider>
+            </Route>
+            
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </>
   )
 }

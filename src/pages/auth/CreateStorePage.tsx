@@ -1,246 +1,255 @@
-// File Path: d:/Projects/Web/Universal POS/src/pages/auth/CreateStorePage.tsx
-
-import { useState } from 'react'
+// src/pages/auth/CreateStorePage.tsx
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabaseClient'
-import { useAuthStore } from '@/store/authStore'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import type { Store, StoreMember } from '@/types'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as zod from 'zod'
+import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../store/authStore'
+import { Store, StoreMember } from '../../types'
+import { toast } from '../../components/shared/Toast'
+import { Loader2, Plus, Phone, MapPin, DollarSign } from 'lucide-react'
 
-const STORE_TYPES = [
+const storeTypes = [
   { id: 'restaurant', name: 'Restaurant', icon: '🍽️' },
   { id: 'ice_cream', name: 'Ice Cream', icon: '🍦' },
   { id: 'grocery', name: 'Grocery', icon: '🛒' },
   { id: 'pharmacy', name: 'Pharmacy', icon: '💊' },
-  { id: 'retail', name: 'Retail Store', icon: '🏪' },
-  { id: 'clothing', name: 'Clothing Shop', icon: '👗' },
+  { id: 'retail', name: 'Retail', icon: '🏪' },
+  { id: 'clothing', name: 'Clothing', icon: '👗' },
   { id: 'electronics', name: 'Electronics', icon: '📱' },
-  { id: 'other', name: 'Other Business', icon: '🏬' },
+  { id: 'other', name: 'Other', icon: '🏬' },
 ]
 
-const COLOR_PRESETS = [
-  '#0f766e', // Teal
-  '#e11d48', // Rose
-  '#2563eb', // Blue
-  '#d97706', // Amber
-  '#16a34a', // Green
-  '#7c3aed', // Purple
+const themeColors = [
+  { id: 'teal', value: '#0f766e', label: 'Teal' },
+  { id: 'blue', value: '#1d4ed8', label: 'Blue' },
+  { id: 'indigo', value: '#4338ca', label: 'Indigo' },
+  { id: 'purple', value: '#7e22ce', label: 'Purple' },
+  { id: 'emerald', value: '#047857', label: 'Emerald' },
+  { id: 'rose', value: '#be123c', label: 'Rose' },
 ]
+
+const storeSchema = zod.object({
+  storeName: zod.string().min(2, 'Store name must be at least 2 characters'),
+  storeType: zod.string().min(1, 'Please select a store type'),
+  currencySymbol: zod.string().min(1, 'Currency symbol is required'),
+  themeColor: zod.string().min(1, 'Theme color is required'),
+  phone: zod.string().optional(),
+  address: zod.string().optional(),
+})
+
+type StoreFormValues = zod.infer<typeof storeSchema>
 
 export default function CreateStorePage() {
   const navigate = useNavigate()
   const { setActiveStore, setActiveMember } = useAuthStore()
-  
-  const [name, setName] = useState('')
-  const [storeType, setStoreType] = useState('retail')
-  const [currencySymbol, setCurrencySymbol] = useState('₹')
-  const [phone, setPhone] = useState('')
-  const [address, setAddress] = useState('')
-  const [themeColor, setThemeColor] = useState('#0f766e')
-  const [customColor, setCustomColor] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<StoreFormValues>({
+    resolver: zodResolver(storeSchema),
+    defaultValues: {
+      storeType: 'retail',
+      currencySymbol: '₹',
+      themeColor: '#0f766e',
+      phone: '',
+      address: '',
+    },
+  })
+
+  const selectedStoreType = watch('storeType')
+  const selectedThemeColor = watch('themeColor')
+
+  const onSubmit = async (data: StoreFormValues) => {
     setLoading(true)
-    setError(null)
-
-    const selectedColor = customColor && /^#[0-9A-Fa-f]{6}$/.test(customColor) ? customColor : themeColor
-    const storeId = crypto.randomUUID()
-
     try {
-      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
-      if (userError || !currentUser) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
         navigate('/login')
         return
       }
 
-      // 1. Insert store
-      const { data: storeData, error: storeError } = await (supabase
-        .from('stores') as any)
+      const { data: store, error: storeErr } = await supabase
+        .from('stores')
         .insert({
-          id: storeId,
-          name,
-          store_type: storeType,
-          currency_symbol: currencySymbol,
-          phone: phone || null,
-          address: address || null,
-          theme_color: selectedColor,
+          name: data.storeName,
+          store_type: data.storeType,
+          currency_symbol: data.currencySymbol,
+          theme_color: data.themeColor,
+          phone: data.phone,
+          address: data.address
         })
         .select()
         .single()
+      
+      if (storeErr) throw storeErr
 
-      if (storeError) throw new Error(`Store creation failed: ${storeError.message}`)
-
-      // 2. Insert store member
-      const { data: memberData, error: memberError } = await (supabase
-        .from('store_members') as any)
+      const { error: memberErr } = await supabase
+        .from('store_members')
         .insert({
-          store_id: storeData.id,
-          user_id: currentUser.id,
+          store_id: store.id,
+          user_id: user.id,
           role: 'owner',
-          full_name: currentUser.user_metadata?.full_name ?? 'Owner',
-          is_active: true,
+          full_name: user.user_metadata?.full_name ?? ''
         })
-        .select()
-        .single()
+        
+      if (memberErr) throw memberErr
 
-      if (memberError) throw new Error(`Member creation failed: ${memberError.message}`)
-
-      // 3. Update auth store state
-      setActiveStore(storeData as unknown as Store)
-      setActiveMember(memberData as unknown as StoreMember)
+      setActiveStore(store as Store)
+      setActiveMember({ store_id: store.id, user_id: user.id, role: 'owner' } as StoreMember)
+      toast.success('Store created!')
       navigate('/dashboard')
     } catch (err: any) {
-      setError(err.message || 'Failed to create store')
-      console.error('CreateStore error:', err)
+      toast.error(err.message ?? 'Failed to create store')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden py-10">
-      {/* Background decorations */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[100px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/20 rounded-full blur-[100px]" />
+    <div className="min-h-screen bg-[#fffbf5] py-12 px-4 flex justify-center items-center">
+      <div className="max-w-2xl w-full bg-white rounded-3xl shadow-xl border border-[#0f766e]/10 p-8 md:p-10">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 font-heading">Create Your Store</h2>
+          <p className="text-gray-500 font-body mt-1">Configure your workspace and start billing customers</p>
+        </div>
 
-      <Card className="w-full max-w-2xl relative z-10 glass-card border-none shadow-2xl">
-        <CardHeader className="space-y-3 pb-6 text-center pt-8">
-          <div className="w-20 h-20 bg-primary mx-auto rounded-full flex items-center justify-center shadow-lg border-4 border-white mb-2">
-            <span className="text-4xl">⚙️</span>
-          </div>
-          <CardTitle className="text-3xl font-poppins font-bold text-primary tracking-wide">Create Your Store</CardTitle>
-          <CardDescription className="text-base">
-            Set up details to initialize your new multi-tenant POS workspace
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="p-3 text-sm text-destructive-foreground bg-destructive/90 rounded-md shadow-sm">
-                {error}
-              </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Store Name */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2 font-body">Store Name *</label>
+            <input
+              type="text"
+              {...register('storeName')}
+              className={`block w-full px-4 py-3 bg-gray-50 border ${
+                errors.storeName ? 'border-red-300' : 'border-gray-200'
+              } rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900`}
+              placeholder="e.g. Tasty Treats, Super Grocery"
+            />
+            {errors.storeName && (
+              <span className="text-xs text-red-500 mt-1 font-body block">{errors.storeName.message}</span>
             )}
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground">Store Name *</label>
-                <Input
-                  placeholder="e.g. Universal Retail"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground">Currency Symbol *</label>
-                <Input
-                  placeholder="e.g. ₹, $, €"
-                  value={currencySymbol}
-                  onChange={(e) => setCurrencySymbol(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground">Phone Number</label>
-                <Input
-                  placeholder="e.g. +91 98765 43210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground">Address</label>
-                <Input
-                  placeholder="Store physical address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
+          {/* Store Type Cards */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3 font-body font-medium">Store Type</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {storeTypes.map((type) => (
+                <button
+                  key={type.id}
+                  type="button"
+                  onClick={() => setValue('storeType', type.id)}
+                  className={`p-4 flex flex-col items-center justify-center rounded-2xl border text-center transition-all ${
+                    selectedStoreType === type.id
+                      ? 'border-[#0f766e] bg-[#0f766e]/5 ring-2 ring-[#0f766e]/20 text-[#0f766e]'
+                      : 'border-gray-100 bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <span className="text-3xl mb-1.5" role="img" aria-label={type.name}>
+                    {type.icon}
+                  </span>
+                  <span className="text-sm font-medium font-body">{type.name}</span>
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Store Type Selection Grid */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-foreground">Business Type *</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {STORE_TYPES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setStoreType(t.id)}
-                    className={`p-3 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all ${
-                      storeType === t.id
-                        ? 'border-primary bg-primary/10 shadow-sm'
-                        : 'border-white/40 hover:bg-white/40'
-                    }`}
-                    disabled={loading}
-                  >
-                    <span className="text-2xl">{t.icon}</span>
-                    <span className="text-xs font-medium">{t.name}</span>
-                  </button>
-                ))}
-              </div>
+          {/* Theme Color Selector */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3 font-body font-medium">Theme Color</label>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {themeColors.map((color) => (
+                <button
+                  key={color.id}
+                  type="button"
+                  onClick={() => setValue('themeColor', color.value)}
+                  className={`py-3 px-2 flex flex-col items-center gap-1 rounded-xl border transition-all ${
+                    selectedThemeColor === color.value
+                      ? 'border-gray-900 bg-white ring-2 ring-gray-950/10'
+                      : 'border-gray-100 bg-gray-50'
+                  }`}
+                >
+                  <span className="w-5 h-5 rounded-full" style={{ backgroundColor: color.value }} />
+                  <span className="text-xs font-medium font-body text-gray-600">{color.label}</span>
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Theme / Brand Color Picker */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-foreground font-poppins">Brand Theme Color</label>
-              <div className="flex flex-wrap items-center gap-3">
-                {COLOR_PRESETS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => {
-                      setThemeColor(color)
-                      setCustomColor('')
-                    }}
-                    className={`w-10 h-10 rounded-full border-2 transition-all ${
-                      themeColor === color && !customColor
-                        ? 'border-foreground scale-110 shadow-md'
-                        : 'border-transparent hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color }}
-                    disabled={loading}
-                  />
-                ))}
-                
-                <div className="flex items-center gap-2 border rounded-lg p-1 bg-white/50 border-white/40 shadow-inner">
-                  <span className="text-xs text-muted-foreground pl-2 font-medium">Custom HEX</span>
-                  <Input
-                    type="text"
-                    placeholder="#0f766e"
-                    value={customColor}
-                    onChange={(e) => {
-                      setCustomColor(e.target.value)
-                    }}
-                    className="w-24 h-8 text-xs p-1"
-                    disabled={loading}
-                  />
+          {/* Currency + Phone */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 font-body">Currency Symbol *</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <DollarSign className="w-5 h-5" />
                 </div>
+                <input
+                  type="text"
+                  {...register('currencySymbol')}
+                  className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900"
+                  placeholder="₹, $, €, etc."
+                />
               </div>
+              {errors.currencySymbol && (
+                <span className="text-xs text-red-500 mt-1 font-body block">{errors.currencySymbol.message}</span>
+              )}
             </div>
 
-            <Button
-              type="submit"
-              className="w-full h-12 text-lg shadow-md font-medium mt-2 bg-primary hover:bg-primary/90"
-              disabled={loading}
-            >
-              {loading ? 'Creating Store Workspace...' : 'Initialize POS Store'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 font-body">Store Phone</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <Phone className="w-5 h-5" />
+                </div>
+                <input
+                  type="text"
+                  {...register('phone')}
+                  className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900"
+                  placeholder="e.g. +91 98765 43210"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Address */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2 font-body">Store Address</label>
+            <div className="relative">
+              <div className="absolute top-3 left-3.5 text-gray-400">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <textarea
+                rows={3}
+                {...register('address')}
+                className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-body"
+                placeholder="Full address of the shop"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 px-4 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-semibold font-body flex items-center justify-center gap-2 shadow-lg shadow-[#0f766e]/10 active:scale-[0.98] transition-transform disabled:opacity-75 disabled:pointer-events-none"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                Create Store <Plus className="w-5 h-5" />
+              </>
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

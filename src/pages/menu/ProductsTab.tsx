@@ -1,439 +1,509 @@
-// File Path: d:/Projects/Web/Universal POS/src/pages/menu/ProductsTab.tsx
-
-import { useState, useMemo } from 'react'
-import { Plus, Edit3, Trash2, Search, Filter, ShieldAlert, CheckSquare, Square } from 'lucide-react'
+// src/pages/menu/ProductsTab.tsx
+import React, { useState } from 'react'
+import { useAuthStore } from '../../store/authStore'
+import { useCategories } from '../../hooks/useCategories'
 import {
   useProducts,
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
   useToggleAvailability,
-} from '@/hooks/useProducts'
-import { useCategories } from '@/hooks/useCategories'
-import ProductFormModal from '@/components/pos/ProductFormModal'
-import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
-import { formatCurrency } from '@/lib/formatCurrency'
-import type { Product } from '@/types'
+} from '../../hooks/useProducts'
+import { Product } from '../../types'
+import { formatCurrency } from '../../lib/utils'
+import { toast } from '../../components/shared/Toast'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
+import EmptyState from '../../components/shared/EmptyState'
+import { Plus, Edit2, Trash2, Search, Filter, Package, Loader2, ToggleLeft, ToggleRight, X, Image as ImageIcon } from 'lucide-react'
 
-interface ProductsTabProps {
-  storeId: string
-  currencySymbol: string
-}
+export default function ProductsTab() {
+  const { activeStore } = useAuthStore()
+  const storeId = activeStore?.id
+  const currencySymbol = activeStore?.currency_symbol || '₹'
 
-export default function ProductsTab({ storeId, currencySymbol }: ProductsTabProps) {
+  // Categories & Products Data
   const { data: categories = [] } = useCategories(storeId)
-  const { data: products = [], isLoading } = useProducts(storeId)
+  
+  const [filterCategoryId, setFilterCategoryId] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
-  const createMutation = useCreateProduct()
-  const updateMutation = useUpdateProduct()
-  const deleteMutation = useDeleteProduct()
-  const toggleMutation = useToggleAvailability()
+  const { data: products = [], isLoading } = useProducts(
+    storeId,
+    filterCategoryId === 'all' ? null : filterCategoryId
+  )
 
-  // Form Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const createMutation = useCreateProduct(storeId)
+  const updateMutation = useUpdateProduct(storeId)
+  const deleteMutation = useDeleteProduct(storeId)
+  const toggleMutation = useToggleAvailability(storeId)
 
-  // Filtering & Search
-  const [search, setSearch] = useState('')
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all')
+  // Modal Form States
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
-  // Bulk selection
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [isBulkUpdating, setIsBulkUpdating] = useState(false)
+  const [name, setName] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+  const [price, setPrice] = useState<number>(0)
+  const [costPrice, setCostPrice] = useState<number>(0)
+  const [description, setDescription] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+  const [unit, setUnit] = useState('pc')
+  const [sortOrder, setSortOrder] = useState(0)
+  const [isAvailable, setIsAvailable] = useState(true)
 
-  // Custom Delete Confirm State
-  const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null)
+  // Confirm Delete
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
-  const handleOpenAddModal = () => {
-    setSelectedProduct(null)
-    setIsModalOpen(true)
+  // Client-side filtering by search
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const openAddModal = () => {
+    setEditingProduct(null)
+    setName('')
+    setCategoryId(categories[0]?.id || '')
+    setPrice(0)
+    setCostPrice(0)
+    setDescription('')
+    setImageUrl('')
+    setUnit('pc')
+    setSortOrder(products.length)
+    setIsAvailable(true)
+    setModalOpen(true)
   }
 
-  const handleOpenEditModal = (product: Product) => {
-    setSelectedProduct(product)
-    setIsModalOpen(true)
+  const openEditModal = (product: Product) => {
+    setEditingProduct(product)
+    setName(product.name)
+    setCategoryId(product.category_id || '')
+    setPrice(Number(product.price))
+    setCostPrice(Number(product.cost_price || 0))
+    setDescription(product.description || '')
+    setImageUrl(product.image_url || '')
+    setUnit(product.unit || 'pc')
+    setSortOrder(product.sort_order || 0)
+    setIsAvailable(product.is_available ?? true)
+    setModalOpen(true)
   }
 
-  const handleFormSubmit = async (values: any) => {
-    try {
-      if (selectedProduct) {
-        await updateMutation.mutateAsync({
-          id: selectedProduct.id,
-          store_id: storeId,
-          changes: values,
-        })
-      } else {
-        await createMutation.mutateAsync({
-          store_id: storeId,
-          ...values,
-        })
-      }
-      setIsModalOpen(false)
-    } catch (err) {
-      console.error('Failed to submit product form:', err)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) {
+      toast.error('Product name is required')
+      return
     }
-  }
+    if (price < 0) {
+      toast.error('Price cannot be negative')
+      return
+    }
 
-  const handleDelete = async (id: string) => {
+    const payload = {
+      name,
+      category_id: categoryId || null,
+      price,
+      cost_price: costPrice,
+      description,
+      image_url: imageUrl || undefined,
+      unit,
+      sort_order: sortOrder,
+      is_available: isAvailable,
+    }
+
     try {
-      await deleteMutation.mutateAsync({ id, store_id: storeId })
-      setDeleteConfirmProduct(null)
-      // Remove from selection if deleted
-      const updated = new Set(selectedIds)
-      updated.delete(id)
-      setSelectedIds(updated)
-    } catch (err) {
-      console.error('Failed to delete product:', err)
+      if (editingProduct) {
+        await updateMutation.mutateAsync({ ...payload, id: editingProduct.id })
+        toast.success('Product updated!')
+      } else {
+        await createMutation.mutateAsync(payload)
+        toast.success('Product created!')
+      }
+      setModalOpen(false)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save product')
     }
   }
 
   const handleToggleAvailable = async (product: Product) => {
+    const nextState = !(product.is_available ?? true)
     try {
-      await toggleMutation.mutateAsync({
-        id: product.id,
-        store_id: storeId,
-        is_available: !product.is_available,
-      })
-    } catch (err) {
-      console.error('Failed to toggle product status:', err)
+      await toggleMutation.mutateAsync({ id: product.id, isAvailable: nextState })
+      toast.success(`${product.name} is now ${nextState ? 'available' : 'unavailable'}`)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to change availability status')
     }
   }
 
-  // Bulk Selection Operations
-  const handleSelectProduct = (id: string) => {
-    const updated = new Set(selectedIds)
-    if (updated.has(id)) {
-      updated.delete(id)
-    } else {
-      updated.add(id)
-    }
-    setSelectedIds(updated)
+  const handleDeleteClick = (id: string) => {
+    setDeleteTargetId(id)
+    setDeleteConfirmOpen(true)
   }
 
-  const handleSelectAllFiltered = (filteredProducts: Product[]) => {
-    const allSelected = filteredProducts.every((p) => selectedIds.has(p.id))
-    const updated = new Set(selectedIds)
-    if (allSelected) {
-      filteredProducts.forEach((p) => updated.delete(p.id))
-    } else {
-      filteredProducts.forEach((p) => updated.add(p.id))
-    }
-    setSelectedIds(updated)
-  }
-
-  const handleBulkToggleAvailability = async (is_available: boolean) => {
-    setIsBulkUpdating(true)
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId) return
     try {
-      await Promise.all(
-        Array.from(selectedIds).map((id) =>
-          toggleMutation.mutateAsync({
-            id,
-            store_id: storeId,
-            is_available,
-          })
-        )
-      )
-      setSelectedIds(new Set())
-    } catch (err) {
-      console.error('Bulk update failed:', err)
-    } finally {
-      setIsBulkUpdating(false)
+      await deleteMutation.mutateAsync(deleteTargetId)
+      toast.success('Product deleted')
+      setDeleteConfirmOpen(false)
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete product')
     }
   }
 
-  // Filter products by category and search string
-  const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      const matchCategory =
-        selectedCategoryFilter === 'all' || p.category_id === selectedCategoryFilter
-      const matchSearch = p.name.toLowerCase().includes(search.toLowerCase())
-      return matchCategory && matchSearch
-    })
-  }, [products, selectedCategoryFilter, search])
+  const getCategoryName = (catId?: string | null) => {
+    if (!catId) return 'No Category'
+    const found = categories.find((c) => c.id === catId)
+    return found ? `${found.icon} ${found.name}` : 'Unassigned'
+  }
 
   if (isLoading) {
-    return <LoadingSkeleton variant="card" count={6} />
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-8 h-8 animate-spin text-[#0f766e]" />
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-4 pb-20 md:pb-0">
-      
-      {/* Filtering Header Panel */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white/40 p-4 rounded-xl border border-white/50 shadow-sm items-center">
-        
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-3.5 sm:top-3" />
-          <Input
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-11 sm:h-10"
+    <div className="space-y-4">
+      {/* Search & Filters */}
+      <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center flex-1">
+          {/* Search Input */}
+          <div className="relative w-full sm:max-w-xs">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+              <Search className="w-4 h-4" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search products..."
+              className="block w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900"
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div className="relative w-full sm:max-w-xs flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-400 shrink-0" />
+            <select
+              value={filterCategoryId}
+              onChange={(e) => setFilterCategoryId(e.target.value)}
+              className="block w-full px-3 py-2 text-sm bg-gray-50 border border-gray-250 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+            >
+              <option value="all">All Categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.icon} {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <button
+          onClick={openAddModal}
+          className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-bold font-body text-xs shadow-md shadow-[#0f766e]/10 active:scale-95 transition-transform"
+        >
+          <Plus className="w-4 h-4" /> Add Product
+        </button>
+      </div>
+
+      {filteredProducts.length === 0 ? (
+        <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex items-center justify-center min-h-[300px]">
+          <EmptyState
+            icon={<Package className="w-8 h-8 text-gray-400" />}
+            title="No Products Listed"
+            description="Create stock items with pricing, category labels, and units."
+            actionText="Add Product"
+            onAction={openAddModal}
           />
         </div>
-
-        {/* Category Filter dropdown */}
-        <div className="relative flex items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-          <select
-            className="w-full h-11 sm:h-10 px-3 rounded-lg border border-input bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
-            value={selectedCategoryFilter}
-            onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-          >
-            <option value="all">All Categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.icon} {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Add Product Button */}
-        <div className="flex justify-end">
-          <Button onClick={handleOpenAddModal} className="hidden sm:flex bg-primary hover:bg-primary/90 items-center gap-2 w-full sm:w-auto justify-center min-h-[40px]">
-            <Plus className="w-4 h-4" />
-            Add Product
-          </Button>
-        </div>
-      </div>
-
-      {/* Bulk Action Panel (Renders only when item is selected) */}
-      {selectedIds.size > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl border border-primary/20 bg-primary/5 text-primary animate-in slide-in-from-top-1 duration-200">
-          <span className="text-sm font-bold flex items-center gap-2">
-            <CheckSquare className="w-5 h-5" />
-            Selected {selectedIds.size} product{selectedIds.size > 1 ? 's' : ''}
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              onClick={() => handleBulkToggleAvailability(true)}
-              variant="outline"
-              className="border-primary/20 hover:bg-primary/10 text-xs h-10 sm:h-9 font-bold flex-1 sm:flex-initial"
-              disabled={isBulkUpdating}
-            >
-              Mark Available
-            </Button>
-            <Button
-              onClick={() => handleBulkToggleAvailability(false)}
-              variant="outline"
-              className="border-primary/20 hover:bg-primary/10 text-xs h-10 sm:h-9 font-bold flex-1 sm:flex-initial"
-              disabled={isBulkUpdating}
-            >
-              Mark Unavailable
-            </Button>
-            <Button
-              onClick={() => setSelectedIds(new Set())}
-              variant="ghost"
-              className="text-xs h-10 sm:h-9 hover:bg-transparent min-w-[44px]"
-              disabled={isBulkUpdating}
-            >
-              Clear
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Product Display Panel */}
-      {filteredProducts.length === 0 ? (
-        <EmptyState
-          title="No products found"
-          message={search || selectedCategoryFilter !== 'all' ? 'Try adjusting your search filters.' : 'Add your first product to get started.'}
-          actionLabel={search || selectedCategoryFilter !== 'all' ? undefined : 'Add Product'}
-          onAction={handleOpenAddModal}
-        />
       ) : (
-        <div className="space-y-3">
-          {/* Select All Toggle */}
-          <div className="flex items-center gap-2 pl-2">
-            <button
-              onClick={() => handleSelectAllFiltered(filteredProducts)}
-              className="text-xs text-muted-foreground hover:text-foreground font-semibold flex items-center gap-1.5 min-h-[44px]"
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredProducts.map((p) => (
+            <div
+              key={p.id}
+              className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow relative ${
+                !p.is_available ? 'bg-gray-50/50 opacity-90' : ''
+              }`}
             >
-              {filteredProducts.every((p) => selectedIds.has(p.id)) ? (
-                <CheckSquare className="w-4 h-4 text-primary" />
-              ) : (
-                <Square className="w-4 h-4" />
-              )}
-              Select All Shown ({filteredProducts.length})
-            </button>
-          </div>
+              <div>
+                {/* Image Section */}
+                <div className="h-40 bg-gray-50 flex items-center justify-center border-b border-gray-100 relative">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-gray-300 flex flex-col items-center justify-center">
+                      <ImageIcon className="w-12 h-12 stroke-[1.2]" />
+                      <span className="text-[10px] uppercase font-bold mt-1 tracking-wider">{p.unit}</span>
+                    </div>
+                  )}
 
-          {/* Cards Grid: 2 columns on mobile, 3 columns on tablet/md, 4 on lg */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-            {filteredProducts.map((p) => {
-              const categoryObj = categories.find((c) => c.id === p.category_id)
-              const categoryBadge = categoryObj ? (
-                <span
-                  className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded border font-semibold shadow-inner uppercase tracking-wider truncate max-w-[80px] sm:max-w-none"
-                  style={{
-                    backgroundColor: `${categoryObj.color}15`,
-                    color: categoryObj.color,
-                    borderColor: `${categoryObj.color}30`,
-                  }}
-                >
-                  {categoryObj.icon} {categoryObj.name}
-                </span>
-              ) : (
-                <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded border border-muted bg-muted/20 text-muted-foreground font-semibold uppercase tracking-wider">
-                  Unassigned
-                </span>
-              )
+                  <span className="absolute top-3 left-3 text-xs bg-white/95 backdrop-blur px-2.5 py-1 rounded-full border border-gray-100 font-bold font-body text-gray-600 shadow-sm">
+                    {getCategoryName(p.category_id)}
+                  </span>
+                </div>
 
-              return (
-                <Card
-                  key={p.id}
-                  className={`border-white/50 bg-white/40 hover:shadow-lg transition-all duration-300 relative flex flex-col justify-between overflow-hidden group ${
-                    !p.is_available ? 'opacity-75' : ''
-                  }`}
-                >
-                  {/* Select Checkbox Overlays */}
+                {/* Detail text */}
+                <div className="p-4 space-y-1.5">
+                  <h4 className="font-bold text-gray-900 font-heading line-clamp-1">{p.name}</h4>
+                  {p.description && (
+                    <p className="text-xs text-gray-500 font-body line-clamp-2 leading-relaxed h-8">
+                      {p.description}
+                    </p>
+                  )}
+                  <div className="flex justify-between items-center pt-2">
+                    <div>
+                      <span className="block text-[10px] text-gray-400 uppercase font-bold font-body">Price</span>
+                      <span className="font-bold text-gray-900 text-sm font-body">
+                        {formatCurrency(p.price, currencySymbol)}
+                      </span>
+                    </div>
+                    {p.cost_price > 0 && (
+                      <div className="text-right">
+                        <span className="block text-[10px] text-gray-400 uppercase font-bold font-body">Cost</span>
+                        <span className="font-semibold text-gray-500 text-xs font-body">
+                          {formatCurrency(p.cost_price, currencySymbol)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Status and Action bar */}
+              <div className="p-4 border-t border-gray-50 bg-gray-50/20 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 font-body font-semibold">Available:</span>
                   <button
-                    onClick={() => handleSelectProduct(p.id)}
-                    className="absolute top-2 left-2 z-10 w-8 h-8 rounded-md bg-white border border-muted flex items-center justify-center shadow-sm opacity-100 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200"
+                    onClick={() => handleToggleAvailable(p)}
+                    className={`transition-colors focus:outline-none ${
+                      p.is_available ? 'text-[#0f766e]' : 'text-gray-350'
+                    }`}
                   >
-                    {selectedIds.has(p.id) ? (
-                      <CheckSquare className="w-4 h-4 text-primary" />
+                    {p.is_available ? (
+                      <ToggleRight className="w-8 h-5 stroke-[1.5]" />
                     ) : (
-                      <Square className="w-4 h-4 text-muted-foreground" />
+                      <ToggleLeft className="w-8 h-5 stroke-[1.5]" />
                     )}
                   </button>
+                </div>
 
-                  <div className="p-2 sm:p-4 space-y-2 sm:space-y-3">
-                    {/* Image / Placeholder */}
-                    <div className="h-20 sm:h-32 border border-muted/20 rounded-xl overflow-hidden bg-muted/10 relative flex items-center justify-center">
-                      {p.image_url ? (
-                        <img
-                          src={p.image_url}
-                          alt={p.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <span className="text-3xl sm:text-4xl filter grayscale">🍲</span>
-                      )}
-                      
-                      {!p.is_available && (
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-white font-bold text-[9px] sm:text-xs">
-                          OUT OF STOCK
-                        </div>
-                      )}
-                    </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => openEditModal(p)}
+                    className="p-1.5 text-gray-450 hover:text-[#0f766e] hover:bg-gray-150 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(p.id)}
+                    className="p-1.5 text-gray-455 hover:text-red-650 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                        {categoryBadge}
-                        {p.unit && (
-                          <span className="text-[8px] sm:text-[10px] text-muted-foreground font-semibold">
-                            Unit: {p.unit}
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="font-bold text-foreground font-poppins text-xs sm:text-sm truncate" title={p.name}>
-                        {p.name}
-                      </h4>
-                      <p className="text-sm sm:text-lg font-extrabold text-primary font-poppins">
-                        {formatCurrency(p.price, currencySymbol)}
-                      </p>
-                    </div>
+      {/* Product Edit / Add Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
+          <div className="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-gray-100 p-6 animate-zoom-in max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-450 hover:text-gray-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold text-gray-900 font-heading mb-4">
+              {editingProduct ? 'Edit Product' : 'Create Product'}
+            </h3>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Product Name */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="block w-full px-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+                  placeholder="e.g. Cheese Pizza, Paracetamol 500mg"
+                />
+              </div>
+
+              {/* Category dropdown */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Category
+                </label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="block w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+                >
+                  <option value="">No Category</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.icon} {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Price & Cost Price */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                    Sale Price ({currencySymbol}) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    min="0"
+                    value={price || ''}
+                    onChange={(e) => setPrice(Number(e.target.value))}
+                    className="block w-full px-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                    Cost Price ({currencySymbol})
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={costPrice || ''}
+                    onChange={(e) => setCostPrice(Number(e.target.value))}
+                    className="block w-full px-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Unit & Sort Order */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                    Unit Measurement
+                  </label>
+                  <input
+                    type="text"
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    className="block w-full px-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+                    placeholder="e.g. pc, kg, pack, ltr"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                    Sort order
+                  </label>
+                  <input
+                    type="number"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(Number(e.target.value))}
+                    className="block w-full px-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="block w-full px-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-body"
+                  placeholder="Ingredients or details of the product..."
+                />
+              </div>
+
+              {/* Image URL with live preview */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 font-body">
+                  Image URL
+                </label>
+                <input
+                  type="text"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="block w-full px-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#0f766e]/20 focus:border-[#0f766e] transition-colors outline-none text-gray-900"
+                  placeholder="https://images.unsplash.com/photo-..."
+                />
+                {imageUrl.trim().startsWith('http') && (
+                  <div className="mt-2.5 h-20 w-28 border border-gray-150 rounded-xl overflow-hidden shadow-sm shrink-0">
+                    <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
                   </div>
+                )}
+              </div>
 
-                  {/* Actions Panel */}
-                  <div className="p-2 sm:px-4 sm:py-3 bg-muted/20 border-t border-muted/30 flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
-                    {/* Availability Switch */}
-                    <div className="flex items-center gap-1.5 min-h-[44px]">
-                      <input
-                        type="checkbox"
-                        checked={p.is_available}
-                        onChange={() => handleToggleAvailable(p)}
-                        className="w-5 h-5 cursor-pointer accent-primary"
-                        id={`avail-${p.id}`}
-                      />
-                      <label htmlFor={`avail-${p.id}`} className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase cursor-pointer select-none">
-                        {p.is_available ? 'In Stock' : 'Out Stock'}
-                      </label>
-                    </div>
+              {/* Available Check */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-gray-500 font-body">In Stock:</span>
+                <button
+                  type="button"
+                  onClick={() => setIsAvailable(!isAvailable)}
+                  className={`transition-colors focus:outline-none ${
+                    isAvailable ? 'text-[#0f766e]' : 'text-gray-350'
+                  }`}
+                >
+                  {isAvailable ? (
+                    <ToggleRight className="w-9 h-6 stroke-[1.5]" />
+                  ) : (
+                    <ToggleLeft className="w-9 h-6 stroke-[1.5]" />
+                  )}
+                </button>
+              </div>
 
-                    {/* Edit/Delete */}
-                    <div className="flex gap-1.5">
-                      <button
-                        onClick={() => handleOpenEditModal(p)}
-                        className="p-2.5 sm:p-1.5 rounded bg-white hover:bg-primary/10 text-primary border border-muted/30 transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
-                      >
-                        <Edit3 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirmProduct(p)}
-                        className="p-2.5 sm:p-1.5 rounded bg-white hover:bg-destructive/10 text-destructive border border-muted/30 transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
-                      >
-                        <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </Card>
-              )
-            })}
+              <div className="flex justify-end gap-2.5 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold font-body text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="px-4 py-2 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-bold font-body text-xs transition-colors shadow-md flex items-center gap-1.5"
+                >
+                  {(createMutation.isPending || updateMutation.isPending) && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  )}
+                  <span>Save Product</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Floating Add Product Button for Mobile Only */}
-      <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/90 to-background/0 z-40">
-        <Button
-          onClick={handleOpenAddModal}
-          className="w-full bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 font-bold shadow-lg min-h-[48px] text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Add Product
-        </Button>
-      </div>
-
-      {/* Product Form Modal */}
-      <ProductFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleFormSubmit}
-        product={selectedProduct}
-        categories={categories}
-        currencySymbol={currencySymbol}
-        loading={createMutation.isPending || updateMutation.isPending}
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Delete Product"
+        message="Are you sure you want to permanently delete this product from the inventory?"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        confirmText="Delete"
+        cancelText="Cancel"
       />
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirmProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm border border-muted text-center space-y-4">
-            <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
-              <ShieldAlert className="w-6 h-6" />
-            </div>
-            <div className="space-y-1.5">
-              <h3 className="text-lg font-bold font-poppins text-foreground">Delete Product?</h3>
-              <p className="text-xs text-muted-foreground">
-                Are you sure you want to permanently delete "{deleteConfirmProduct.name}"? This action is irreversible.
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => setDeleteConfirmProduct(null)}
-                disabled={deleteMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => handleDelete(deleteConfirmProduct.id)}
-                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                disabled={deleteMutation.isPending}
-              >
-                {deleteMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,49 +1,51 @@
-// File Path: d:/Projects/Web/Universal POS/src/components/layout/BottomNav.tsx
-
+// src/components/layout/BottomNav.tsx
+import React from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Receipt, History, ListMinus, Settings } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useAuth } from '@/hooks/useAuth'
-import { canManageMenu, canManageStaff } from '@/lib/permissions'
+import { useAuthStore } from '../../store/authStore'
+import {
+  LayoutDashboard,
+  Calculator,
+  History,
+  FolderTree,
+  BarChart3,
+  Settings as SettingsIcon,
+} from 'lucide-react'
+import { canManageMenu, canViewReports, canManageStaff } from '../../lib/permissions'
 
 export default function BottomNav() {
-  const { activeMember } = useAuth()
-  const role = activeMember?.role
+  const { activeStore, activeMember } = useAuthStore()
+
+  const role = activeMember?.role || 'cashier'
+  const activeColor = activeStore?.theme_color || '#0f766e'
 
   const navItems = [
-    { name: 'Home', href: '/', icon: LayoutDashboard, show: true },
-    { name: 'Billing', href: '/billing', icon: Receipt, show: true },
-    { name: 'History', href: '/history', icon: History, show: true },
-    { name: 'Menu', href: '/menu', icon: ListMinus, show: canManageMenu(role) },
-    { name: 'Settings', href: '/settings', icon: Settings, show: canManageStaff(role) },
+    { to: '/dashboard', label: 'Home', icon: LayoutDashboard, show: true },
+    { to: '/billing', label: 'Billing', icon: Calculator, show: true },
+    { to: '/orders', label: 'Orders', icon: History, show: true },
+    { to: '/menu', label: 'Menu', icon: FolderTree, show: canManageMenu(role) },
+    { to: '/reports', label: 'Reports', icon: BarChart3, show: canViewReports(role) },
+    { to: '/settings', label: 'Settings', icon: SettingsIcon, show: canManageStaff(role) },
   ]
 
-  const visibleItems = navItems.filter(item => item.show)
+  const visibleItems = navItems.filter((item) => item.show)
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-lg flex justify-around items-center h-16 border-t border-muted/50 shadow-[0_-8px_20px_rgba(0,0,0,0.06)] pb-safe pb-[env(safe-area-inset-bottom)] px-2">
+    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-100 flex items-center justify-around z-40 pb-safe shadow-lg">
       {visibleItems.map((item) => (
         <NavLink
-          key={item.name}
-          to={item.href}
+          key={item.to}
+          to={item.to}
+          style={({ isActive }) => ({
+            color: isActive ? activeColor : undefined,
+          })}
           className={({ isActive }) =>
-            cn(
-              "flex flex-col items-center justify-center w-full h-full space-y-0.5 transition-all duration-200 min-h-[44px] relative py-1 text-muted-foreground",
-              isActive ? "text-primary font-bold" : "hover:text-foreground"
-            )
+            `flex flex-col items-center justify-center flex-1 h-full py-1 text-xs font-semibold font-body transition-colors ${
+              isActive ? '' : 'text-gray-400 hover:text-gray-700'
+            }`
           }
         >
-          {({ isActive }) => (
-            <>
-              <item.icon className={cn("w-5 h-5 flex-shrink-0 transition-transform duration-200", isActive && "scale-110")} />
-              <span className="text-[10px] font-semibold tracking-wide hidden min-[360px]:inline">
-                {item.name}
-              </span>
-              {isActive && (
-                <span className="absolute bottom-0 w-8 h-0.5 bg-primary rounded-full" />
-              )}
-            </>
-          )}
+          <item.icon className="w-5 h-5 mb-0.5 shrink-0" />
+          <span className="text-[10px] tracking-tight">{item.label}</span>
         </NavLink>
       ))}
     </nav>

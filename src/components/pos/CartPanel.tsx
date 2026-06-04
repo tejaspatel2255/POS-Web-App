@@ -1,301 +1,239 @@
-// File Path: d:/Projects/Web/Universal POS/src/components/pos/CartPanel.tsx
-
-import { useState } from 'react'
-import { Plus, Minus, Trash2, Tag, Truck } from 'lucide-react'
-import { useCartStore } from '@/store/cartStore'
-import { Button } from '@/components/ui/button'
-import { formatCurrency } from '@/lib/formatCurrency'
-import type { Store } from '@/types'
-
-const PAYMENT_METHODS = [
-  { id: 'cash', label: '💵 Cash' },
-  { id: 'upi', label: '📱 UPI' },
-  { id: 'card', label: '💳 Card' },
-  { id: 'other', label: '🏬 Other' },
-]
+// src/components/pos/CartPanel.tsx
+import React from 'react'
+import { ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, QrCode, MoreHorizontal } from 'lucide-react'
+import { formatCurrency } from '../../lib/utils'
+import EmptyState from '../shared/EmptyState'
 
 interface CartPanelProps {
-  activeStore: Store
-  onCheckout: (
-    status: 'pending' | 'completed' | 'on_hold',
-    saveAndPrint: boolean,
+  cart: {
+    items: any[]
+    discountPercent: number
+    parcelCharges: number
+    orderType: string
     paymentMethod: 'cash' | 'card' | 'upi' | 'other'
-  ) => void
-  loading?: boolean
+    note: string
+    subtotal: number
+    discountAmount: number
+    total: number
+    addItem: (item: any) => void
+    removeItem: (productId: string) => void
+    updateQty: (productId: string, qty: number) => void
+    clearCart: () => void
+    setDiscount: (discount: number) => void
+    setParcelCharges: (charges: number) => void
+    setOrderType: (type: any) => void
+    setPaymentMethod: (method: any) => void
+    setNote: (note: string) => void
+  }
+  onCheckout: (status: 'completed' | 'pending' | 'on_hold') => Promise<void>
+  currencySymbol: string
 }
 
-export default function CartPanel({
-  activeStore,
-  onCheckout,
-  loading = false,
-}: CartPanelProps) {
-  const {
-    items,
-    discountPercent,
-    parcelCharges,
-    updateQty,
-    updateItemDiscount,
-    removeItem,
-    applyDiscount,
-    setParcelCharges,
-    clearCart,
-    subtotal: getSubtotal,
-    totalDiscount: getTotalDiscount,
-  } = useCartStore()
+export default function CartPanel({ cart, onCheckout, currencySymbol }: CartPanelProps) {
+  const handleQtyChange = (productId: string, currentQty: number, delta: number) => {
+    cart.updateQty(productId, Math.max(1, currentQty + delta))
+  }
 
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'upi' | 'other'>('cash')
+  const paymentMethods = [
+    { id: 'cash', label: 'Cash', icon: Banknote },
+    { id: 'card', label: 'Card', icon: CreditCard },
+    { id: 'upi', label: 'UPI', icon: QrCode },
+    { id: 'other', label: 'Other', icon: MoreHorizontal },
+  ] as const
 
-  const subtotal = getSubtotal()
-  const discountAmount = getTotalDiscount()
-  const taxRate = activeStore.tax_rate || 0
-  const taxableAmount = Math.max(0, subtotal - discountAmount)
-  const taxAmount = parseFloat((taxableAmount * (taxRate / 100)).toFixed(2))
-  const finalTotal = taxableAmount + taxAmount + parcelCharges
-  const symbol = activeStore.currency_symbol
-
-  const handleCheckout = (status: 'pending' | 'completed' | 'on_hold', saveAndPrint = false) => {
-    if (items.length === 0) return
-    onCheckout(status, saveAndPrint, paymentMethod)
+  if (cart.items.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col justify-center items-center h-full">
+        <EmptyState
+          icon={<ShoppingCart className="w-8 h-8 text-gray-300 animate-bounce" />}
+          title="Empty Cart"
+          description="Select products from the grid to add them here."
+        />
+      </div>
+    )
   }
 
   return (
-    <div className="w-full lg:w-96 bg-white/40 border border-white/50 rounded-2xl p-4 flex flex-col h-full overflow-hidden shadow-sm">
-      {/* Cart Header */}
-      <div className="flex justify-between items-center pb-3 border-b border-muted/30 flex-shrink-0">
-        <h3 className="text-sm font-bold font-poppins text-foreground flex items-center gap-1.5">
-          🛒 Active Cart ({items.reduce((sum, i) => sum + i.quantity, 0)} items)
-        </h3>
-        {items.length > 0 && (
-          <button
-            onClick={clearCart}
-            className="text-[10px] uppercase font-bold text-destructive hover:underline min-h-[44px] px-2"
-            disabled={loading}
-          >
-            Clear All
-          </button>
-        )}
-      </div>
-
-      {/* Cart Items Table List */}
-      <div className="flex-1 overflow-y-auto py-2 min-h-0 select-none scrollbar-none">
-        {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center h-full py-8 text-muted-foreground">
-            <span className="text-3xl mb-1">🛒</span>
-            <p className="text-xs font-semibold">Your cart is empty.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {items.map((item, index) => {
-              const netPrice = item.price * (1 - item.discount_percent / 100)
-              const amount = netPrice * item.quantity
-
-              return (
-                <div
-                  key={item.cart_item_id}
-                  className="p-3 rounded-xl border border-white/50 bg-white/60 shadow-xs flex flex-col space-y-2 hover:bg-white/80 transition-colors"
-                >
-                  <div className="flex justify-between items-center gap-2">
-                    <span className="text-xs font-bold text-foreground font-poppins truncate flex-1">
-                      {index + 1}. {item.name}
+    <div className="flex flex-col h-full justify-between">
+      {/* Scrollable Cart Items List */}
+      <div className="flex-1 overflow-y-auto pr-1">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-gray-100 text-[10px] uppercase font-bold tracking-wider text-gray-400 font-body">
+              <th className="py-2 w-8">No</th>
+              <th className="py-2">Item</th>
+              <th className="py-2 text-center w-[90px]">Qty</th>
+              <th className="py-2 text-right w-[75px]">Total</th>
+              <th className="py-2 text-right w-8"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50 text-sm font-body">
+            {cart.items.map((item, idx) => (
+              <tr key={item.product_id} className="align-middle">
+                <td className="py-3 text-gray-400 font-semibold">{idx + 1}</td>
+                <td className="py-3 pr-2">
+                  <span className="font-bold text-gray-800 line-clamp-2 leading-tight">
+                    {item.product_name}
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-medium block mt-0.5">
+                    {formatCurrency(item.price, currencySymbol)}
+                  </span>
+                </td>
+                <td className="py-3">
+                  <div className="flex items-center justify-center gap-1.5 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                    <button
+                      onClick={() => handleQtyChange(item.product_id, item.quantity, -1)}
+                      className="p-1 hover:bg-white rounded text-gray-500 hover:text-gray-950 active:scale-90 transition-transform"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="font-bold text-gray-800 text-xs w-6 text-center select-none">
+                      {item.quantity}
                     </span>
                     <button
-                      onClick={() => removeItem(item.cart_item_id)}
-                      className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded min-w-[44px] min-h-[44px] flex items-center justify-center"
-                      disabled={loading}
+                      onClick={() => handleQtyChange(item.product_id, item.quantity, 1)}
+                      className="p-1 hover:bg-white rounded text-gray-500 hover:text-gray-950 active:scale-90 transition-transform"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
-
-                  <div className="flex items-center justify-between pt-1 gap-2 flex-wrap sm:flex-nowrap">
-                    {/* Quantity Adjustment Buttons */}
-                    <div className="flex items-center gap-1 bg-white border rounded-lg p-1 shadow-inner min-h-[44px]">
-                      <button
-                        onClick={() => updateQty(item.cart_item_id, item.quantity - 1)}
-                        className="p-1.5 hover:bg-muted rounded text-foreground active:scale-90 transition-transform min-w-[32px] min-h-[32px] flex items-center justify-center"
-                        disabled={loading}
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQty(item.cart_item_id, item.quantity + 1)}
-                        className="p-1.5 hover:bg-muted rounded text-foreground active:scale-90 transition-transform min-w-[32px] min-h-[32px] flex items-center justify-center"
-                        disabled={loading}
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Discount Input */}
-                    <div className="flex items-center gap-1.5 border rounded-lg p-1 bg-white shadow-inner min-h-[44px]">
-                      <Tag className="w-3.5 h-3.5 text-muted-foreground ml-1" />
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        placeholder="0"
-                        inputMode="numeric"
-                        className="w-10 text-center text-xs border-none focus:outline-none p-0 mt-0.5"
-                        value={item.discount_percent || ''}
-                        onChange={(e) =>
-                          updateItemDiscount(item.cart_item_id, parseInt(e.target.value) || 0)
-                        }
-                        disabled={loading}
-                      />
-                      <span className="text-[10px] text-muted-foreground pr-1">%</span>
-                    </div>
-
-                    {/* Item Price & Line Total */}
-                    <div className="text-right flex-1 min-w-[80px]">
-                      <div className="text-[9px] text-muted-foreground">Rate: {formatCurrency(item.price, symbol)}</div>
-                      <div className="text-xs font-extrabold text-foreground">
-                        {formatCurrency(amount, symbol)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+                </td>
+                <td className="py-3 text-right font-bold text-gray-800 font-body">
+                  {formatCurrency(item.price * item.quantity, currencySymbol)}
+                </td>
+                <td className="py-3 text-right">
+                  <button
+                    onClick={() => cart.removeItem(item.product_id)}
+                    className="p-1.5 text-gray-450 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* Cart Summary & Checkout Footer */}
-      <div className="border-t border-muted/30 pt-3 space-y-3 flex-shrink-0">
-        {/* Global discount & Parcel charges fields - Stacked on mobile */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <div className="flex items-center gap-1.5 border rounded-xl p-2 bg-white/60 border-white/50 shadow-xs min-h-[44px]">
-            <Tag className="w-4 h-4 text-muted-foreground" />
-            <div className="flex-1 min-w-0">
-              <span className="text-[9px] uppercase font-bold text-muted-foreground block leading-none">Global Disc%</span>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                inputMode="numeric"
-                className="w-full text-xs font-semibold focus:outline-none border-none p-0 mt-0.5 bg-transparent"
-                value={discountPercent || ''}
-                onChange={(e) => applyDiscount(parseInt(e.target.value) || 0)}
-                disabled={loading}
-              />
-            </div>
+      {/* Cart Summary & Action Block */}
+      <div className="border-t border-gray-100 pt-4 mt-4 bg-white space-y-4">
+        
+        {/* Discount & Parcel charges inputs */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1 font-body">
+              Discount (%)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={cart.discountPercent || ''}
+              onChange={(e) => cart.setDiscount(Number(e.target.value))}
+              className="block w-full px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+            />
           </div>
-
-          <div className="flex items-center gap-1.5 border rounded-xl p-2 bg-white/60 border-white/50 shadow-xs min-h-[44px]">
-            <Truck className="w-4 h-4 text-muted-foreground" />
-            <div className="flex-1 min-w-0">
-              <span className="text-[9px] uppercase font-bold text-muted-foreground block leading-none">Parcel Chg</span>
-              <input
-                type="number"
-                min="0"
-                inputMode="numeric"
-                className="w-full text-xs font-semibold focus:outline-none border-none p-0 mt-0.5 bg-transparent"
-                value={parcelCharges || ''}
-                onChange={(e) => setParcelCharges(parseFloat(e.target.value) || 0)}
-                disabled={loading}
-              />
-            </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1 font-body">
+              Parcel (Amt)
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={cart.parcelCharges || ''}
+              onChange={(e) => cart.setParcelCharges(Number(e.target.value))}
+              className="block w-full px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-semibold"
+            />
           </div>
         </div>
 
-        {/* Pricing calculations details */}
-        <div className="space-y-1 bg-white/30 border border-white/40 p-2.5 rounded-xl text-xs">
-          <div className="flex justify-between text-muted-foreground">
+        {/* Note input */}
+        <div>
+          <input
+            type="text"
+            value={cart.note}
+            onChange={(e) => cart.setNote(e.target.value)}
+            placeholder="Add short note..."
+            className="block w-full px-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#0f766e] transition-colors outline-none text-gray-900 font-body"
+          />
+        </div>
+
+        {/* Calculations */}
+        <div className="space-y-1.5 border-b border-gray-100 pb-3.5 text-xs font-semibold font-body text-gray-500">
+          <div className="flex justify-between">
             <span>Subtotal</span>
-            <span>{formatCurrency(subtotal, symbol)}</span>
+            <span className="text-gray-800">{formatCurrency(cart.subtotal, currencySymbol)}</span>
           </div>
-          {discountAmount > 0 && (
+          {cart.discountPercent > 0 && (
             <div className="flex justify-between text-emerald-600">
-              <span>Discounts</span>
-              <span>-{formatCurrency(discountAmount, symbol)}</span>
+              <span>Discount ({cart.discountPercent}%)</span>
+              <span>-{formatCurrency(cart.discountAmount, currencySymbol)}</span>
             </div>
           )}
-          {taxRate > 0 && (
-            <div className="flex justify-between text-muted-foreground">
-              <span>Tax ({taxRate}%)</span>
-              <span>{formatCurrency(taxAmount, symbol)}</span>
-            </div>
-          )}
-          {parcelCharges > 0 && (
-            <div className="flex justify-between text-muted-foreground">
+          {cart.parcelCharges > 0 && (
+            <div className="flex justify-between">
               <span>Parcel Charges</span>
-              <span>{formatCurrency(parcelCharges, symbol)}</span>
+              <span className="text-gray-800">+{formatCurrency(cart.parcelCharges, currencySymbol)}</span>
             </div>
           )}
-          <div className="flex justify-between font-extrabold text-foreground text-sm sm:text-base pt-1.5 border-t border-muted/20">
-            <span>Total</span>
-            <span>{formatCurrency(finalTotal, symbol)}</span>
+          <div className="flex justify-between text-gray-900 text-sm font-bold pt-1.5 border-t border-dashed border-gray-100">
+            <span className="font-heading uppercase text-xs tracking-wider text-gray-500">Total Bill</span>
+            <span className="text-base font-heading">{formatCurrency(cart.total, currencySymbol)}</span>
           </div>
         </div>
 
-        {/* Payment selector grid */}
-        <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold text-muted-foreground">Payment Method</label>
+        {/* Payment Pills */}
+        <div className="space-y-2">
+          <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wide font-body">
+            Payment Method
+          </span>
           <div className="grid grid-cols-4 gap-1.5">
-            {PAYMENT_METHODS.map((method) => (
+            {paymentMethods.map((pm) => (
               <button
-                key={method.id}
+                key={pm.id}
                 type="button"
-                onClick={() => setPaymentMethod(method.id as any)}
-                className={`py-2 rounded-full border text-center text-xs font-bold transition-all min-h-[44px] flex items-center justify-center ${
-                  paymentMethod === method.id
-                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                    : 'border-white/50 bg-white hover:bg-white/80 text-muted-foreground'
+                onClick={() => cart.setPaymentMethod(pm.id)}
+                className={`py-2 px-1 flex flex-col items-center justify-center rounded-xl border text-[9px] font-bold font-body transition-colors gap-1 ${
+                  cart.paymentMethod === pm.id
+                    ? 'border-[#0f766e] bg-[#0f766e]/5 text-[#0f766e] ring-1 ring-[#0f766e]'
+                    : 'border-gray-150 bg-white text-gray-500 hover:bg-gray-50'
                 }`}
-                disabled={loading}
               >
-                {method.label.split(' ')[1]}
+                <pm.icon className="w-4 h-4" />
+                <span>{pm.label}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Action Button layout grid with responsive flex/order */}
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <Button
-            onClick={() => handleCheckout('completed', true)}
-            className="order-1 md:order-4 text-xs h-11 font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground min-h-[44px]"
-            disabled={loading || items.length === 0}
+        {/* Action buttons */}
+        <div className="grid grid-cols-3 gap-2 pt-2">
+          <button
+            onClick={cart.clearCart}
+            className="py-2.5 px-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold font-body rounded-xl border border-gray-150 transition-colors"
           >
-            Print & Complete
-          </Button>
-
-          <Button
-            onClick={() => handleCheckout('completed')}
-            className="order-2 md:order-3 text-xs h-11 font-bold bg-primary hover:bg-primary/90 min-h-[44px]"
-            disabled={loading || items.length === 0}
+            Cancel
+          </button>
+          <button
+            onClick={() => onCheckout('on_hold')}
+            className="py-2.5 px-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold font-body rounded-xl transition-colors"
           >
-            Complete Order
-          </Button>
-
-          <Button
-            variant="outline"
-            className="order-3 md:order-2 text-xs h-11 font-bold min-h-[44px]"
-            onClick={() => handleCheckout('pending')}
-            disabled={loading || items.length === 0}
+            Hold
+          </button>
+          <button
+            onClick={() => onCheckout('pending')}
+            className="py-2.5 px-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 text-xs font-bold font-body rounded-xl transition-colors"
           >
-            Save Pending
-          </Button>
-
-          <Button
-            variant="outline"
-            className="order-4 md:order-1 text-xs h-11 font-bold min-h-[44px]"
-            onClick={() => handleCheckout('on_hold')}
-            disabled={loading || items.length === 0}
-          >
-            Hold Bill
-          </Button>
-
-          <Button
-            variant="outline"
-            className="order-5 col-span-2 text-xs h-11 font-bold bg-destructive/10 hover:bg-destructive/20 border-destructive/20 text-destructive md:hidden min-h-[44px]"
-            onClick={clearCart}
-            disabled={loading || items.length === 0}
-          >
-            Cancel / Clear Cart
-          </Button>
+            Pending
+          </button>
         </div>
+
+        <button
+          onClick={() => onCheckout('completed')}
+          className="w-full py-3.5 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-bold font-body text-sm shadow-md shadow-[#0f766e]/10 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+        >
+          <span>Complete & Print</span>
+        </button>
       </div>
     </div>
   )

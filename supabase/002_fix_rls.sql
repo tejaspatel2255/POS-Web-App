@@ -16,6 +16,19 @@ DROP POLICY IF EXISTS "owners_delete_members" ON store_members;
 ALTER TABLE stores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE store_members ENABLE ROW LEVEL SECURITY;
 
+-- HELPER FUNCTION (Bypasses RLS using PL/pgSQL Security Definer)
+CREATE OR REPLACE FUNCTION get_my_role(p_store_id UUID)
+RETURNS TEXT AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  SELECT role INTO v_role FROM store_members
+  WHERE store_id = p_store_id AND user_id = auth.uid() AND is_active = true
+  LIMIT 1;
+  RETURN v_role;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
 -- STORES policies
 CREATE POLICY "authenticated_insert_stores"
 ON stores FOR INSERT TO authenticated
@@ -49,22 +62,13 @@ CREATE POLICY "members_select_own_memberships"
 ON store_members FOR SELECT TO authenticated
 USING (
   user_id = auth.uid()
-  OR store_id IN (
-    SELECT store_id FROM store_members
-    WHERE user_id = auth.uid() AND role IN ('owner','admin') AND is_active = true
-  )
+  OR get_my_role(store_id) IN ('owner','admin')
 );
 
 CREATE POLICY "owners_manage_members"
 ON store_members FOR UPDATE TO authenticated
-USING (store_id IN (
-  SELECT store_id FROM store_members
-  WHERE user_id = auth.uid() AND role = 'owner' AND is_active = true
-));
+USING (get_my_role(store_id) = 'owner');
 
 CREATE POLICY "owners_delete_members"
 ON store_members FOR DELETE TO authenticated
-USING (store_id IN (
-  SELECT store_id FROM store_members
-  WHERE user_id = auth.uid() AND role = 'owner' AND is_active = true
-));
+USING (get_my_role(store_id) = 'owner');

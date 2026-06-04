@@ -1,41 +1,28 @@
-// File Path: d:/Projects/Web/Universal POS/src/pages/auth/SelectStorePage.tsx
-
-import { useState, useEffect } from 'react'
+// src/pages/auth/SelectStorePage.tsx
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabaseClient'
-import { useAuthStore } from '@/store/authStore'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import type { Store, StoreMember } from '@/types'
+import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../store/authStore'
+import { Store, StoreMember } from '../../types'
+import { toast } from '../../components/shared/Toast'
+import { Loader2, Plus, ArrowRight, Store as StoreIcon } from 'lucide-react'
 
-const STORE_TYPE_ICONS: Record<string, string> = {
-  restaurant: '🍽️',
-  ice_cream: '🍦',
-  grocery: '🛒',
-  pharmacy: '💊',
-  retail: '🏪',
-  clothing: '👗',
-  electronics: '📱',
-  other: '🏬',
-}
-
-interface MemberWithStore {
-  id: string
-  store_id: string
-  user_id: string
-  role: 'owner' | 'admin' | 'cashier'
-  full_name: string | null
-  is_active: boolean
-  created_at: string
-  store: Store
-}
+const storeTypes = [
+  { id: 'restaurant', icon: '🍽️' },
+  { id: 'ice_cream', icon: '🍦' },
+  { id: 'grocery', icon: '🛒' },
+  { id: 'pharmacy', icon: '💊' },
+  { id: 'retail', icon: '🏪' },
+  { id: 'clothing', icon: '👗' },
+  { id: 'electronics', icon: '📱' },
+  { id: 'other', icon: '🏬' },
+]
 
 export default function SelectStorePage() {
   const navigate = useNavigate()
   const { user, setActiveStore, setActiveMember } = useAuthStore()
-  const [memberships, setMemberships] = useState<MemberWithStore[]>([])
+  const [memberships, setMemberships] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -45,42 +32,16 @@ export default function SelectStorePage() {
 
     const fetchMemberships = async () => {
       try {
-        const { data, error: fetchError } = await supabase
+        const { data, error } = await supabase
           .from('store_members')
-          .select(`
-            id,
-            store_id,
-            user_id,
-            role,
-            full_name,
-            is_active,
-            created_at,
-            store:stores (
-              id,
-              name,
-              tagline,
-              logo_url,
-              address,
-              phone,
-              email,
-              currency_symbol,
-              currency_code,
-              tax_rate,
-              default_parcel_charges,
-              receipt_footer,
-              theme_color,
-              store_type,
-              is_active,
-              created_at
-            )
-          `)
+          .select('*, stores(*)')
           .eq('user_id', user.id)
-          .eq('is_active', true)
+          .eq('is_active', true) as any
 
-        if (fetchError) throw fetchError
-        setMemberships((data || []) as unknown as MemberWithStore[])
+        if (error) throw error
+        setMemberships(data || [])
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch store memberships')
+        toast.error(err.message || 'Failed to load stores')
       } finally {
         setLoading(false)
       }
@@ -89,116 +50,109 @@ export default function SelectStorePage() {
     fetchMemberships()
   }, [user, navigate])
 
-  const handleSelectStore = (membership: MemberWithStore) => {
-    const { store, ...memberData } = membership
-    setActiveStore(store)
-    setActiveMember(memberData as unknown as StoreMember)
+  const handleSelect = (member: any) => {
+    setActiveStore(member.stores as Store)
+    setActiveMember(member as StoreMember)
+    toast.success(`Welcome to ${member.stores.name}`)
     navigate('/dashboard')
+  }
+
+  const getStoreIcon = (type: string) => {
+    const found = storeTypes.find((t) => t.id === type)
+    return found ? found.icon : '🏬'
+  }
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'owner':
+        return 'bg-purple-50 text-purple-700 border-purple-200'
+      case 'admin':
+        return 'bg-blue-50 text-blue-700 border-blue-200'
+      default:
+        return 'bg-gray-50 text-gray-700 border-gray-200'
+    }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-[#fffbf5] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-[#0f766e]" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden py-10">
-      {/* Background decorations */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[100px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/20 rounded-full blur-[100px]" />
+    <div className="min-h-screen bg-[#fffbf5] py-16 px-4 flex justify-center items-center">
+      <div className="max-w-4xl w-full">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-gray-900 font-heading">Choose Your Workspace</h2>
+          <p className="text-gray-500 font-body mt-1">Select a store to launch the POS dashboard</p>
+        </div>
 
-      <Card className="w-full max-w-2xl relative z-10 glass-card border-none shadow-2xl">
-        <CardHeader className="space-y-3 pb-6 text-center pt-8">
-          <div className="w-20 h-20 bg-primary mx-auto rounded-full flex items-center justify-center shadow-lg border-4 border-white mb-2">
-            <span className="text-4xl">🏢</span>
+        {memberships.length === 0 ? (
+          <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-lg text-center max-w-md mx-auto">
+            <div className="w-16 h-16 bg-[#0f766e]/10 rounded-2xl flex items-center justify-center text-[#0f766e] mx-auto mb-4">
+              <StoreIcon className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 font-heading">No Stores Found</h3>
+            <p className="text-gray-500 text-sm font-body mt-2 mb-6">
+              You aren't associated with any stores yet. Create your first store to get started!
+            </p>
+            <button
+              onClick={() => navigate('/create-store')}
+              className="py-3 px-6 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-medium font-body flex items-center justify-center gap-2 mx-auto shadow-md"
+            >
+              Create New Store <Plus className="w-5 h-5" />
+            </button>
           </div>
-          <CardTitle className="text-3xl font-poppins font-bold text-primary tracking-wide">Select Your Store</CardTitle>
-          <CardDescription className="text-base">
-            Choose a store workspace to manage, or set up a new one
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {error && (
-            <div className="p-3 text-sm text-destructive-foreground bg-destructive/90 rounded-md shadow-sm">
-              {error}
-            </div>
-          )}
-
-          {memberships.length === 0 ? (
-            <div className="text-center py-6 space-y-4">
-              <p className="text-muted-foreground">You are not registered in any stores yet.</p>
-              <Button onClick={() => navigate('/create-store')} className="bg-primary hover:bg-primary/90">
-                Create New Store
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto pr-1">
-                {memberships.map((m) => {
-                  const storeIcon = STORE_TYPE_ICONS[m.store.store_type] || '🏬'
-                  const roleColors: Record<string, string> = {
-                    owner: 'bg-red-100 text-red-800 border-red-200',
-                    admin: 'bg-blue-100 text-blue-800 border-blue-200',
-                    cashier: 'bg-green-100 text-green-800 border-green-200',
-                  }
-                  
-                  return (
-                    <Card 
-                      key={m.id} 
-                      className="border-white/40 bg-white/40 hover:bg-white/60 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between"
-                    >
-                      <CardHeader className="p-4 pb-2">
-                        <div className="flex items-start justify-between">
-                          <span className="text-3xl p-1 bg-white/80 rounded-md shadow-sm">{storeIcon}</span>
-                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${roleColors[m.role] || 'bg-gray-100 text-gray-800'}`}>
-                            {m.role.toUpperCase()}
-                          </span>
-                        </div>
-                        <CardTitle className="text-lg font-bold text-foreground mt-2 truncate">
-                          {m.store.name}
-                        </CardTitle>
-                        {m.store.tagline && (
-                          <p className="text-xs text-muted-foreground truncate">{m.store.tagline}</p>
-                        )}
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <Button 
-                          onClick={() => handleSelectStore(m)} 
-                          className="w-full mt-2 bg-primary hover:bg-primary/90 text-sm h-9"
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {memberships.map((member) => (
+                <div
+                  key={member.id}
+                  className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md flex items-center justify-between hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="text-4xl bg-gray-50 p-3 rounded-2xl border border-gray-100 block">
+                      {getStoreIcon(member.stores.store_type)}
+                    </span>
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900 font-heading">{member.stores.name}</h3>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-xs text-gray-500 font-body">Role:</span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full border font-semibold font-body uppercase tracking-wider ${getRoleColor(
+                            member.role
+                          )}`}
                         >
-                          Enter Store
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
+                          {member.role}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="flex justify-between items-center pt-4 border-t border-white/20">
-                <Button 
-                  variant="outline" 
-                  onClick={async () => {
-                    await supabase.auth.signOut()
-                    navigate('/login')
-                  }}
-                  className="border-white/40 hover:bg-white/20"
-                >
-                  Sign Out
-                </Button>
-                <Button 
-                  onClick={() => navigate('/create-store')} 
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  Create New Store
-                </Button>
-              </div>
+                  <button
+                    onClick={() => handleSelect(member)}
+                    className="p-3 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-medium font-body flex items-center justify-center gap-1 hover:gap-2 transition-all active:scale-[0.98]"
+                  >
+                    Enter <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            <div className="flex justify-center pt-4">
+              <button
+                onClick={() => navigate('/create-store')}
+                className="py-3 px-6 bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 rounded-xl font-semibold font-body flex items-center justify-center gap-2 shadow-sm transition-colors"
+              >
+                Create New Store <Plus className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

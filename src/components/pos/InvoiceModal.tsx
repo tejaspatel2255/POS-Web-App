@@ -1,222 +1,235 @@
-// File Path: d:/Projects/Web/Universal POS/src/components/pos/InvoiceModal.tsx
-
-import { useRef } from 'react'
-import { X, Printer, Share2 } from 'lucide-react'
-import { formatCurrency } from '@/lib/formatCurrency'
-import { Button } from '@/components/ui/button'
-import type { Store, Order, OrderItem } from '@/types'
+// src/components/pos/InvoiceModal.tsx
+import React from 'react'
+import { X, Printer, Share2, MessageCircle } from 'lucide-react'
+import { formatCurrency } from '../../lib/utils'
 
 interface InvoiceModalProps {
   isOpen: boolean
   onClose: () => void
-  order: Order & { items: OrderItem[] }
-  store: Store
+  order: {
+    id: string
+    order_number: string | number
+    created_at: string
+    cashier_name?: string
+    order_type: string
+    payment_method: string
+    customer_name?: string
+    customer_phone?: string
+    subtotal: number
+    discount_percent: number
+    discount_amount: number
+    parcel_charges: number
+    tax_amount: number
+    total: number
+    note?: string
+    items: any[]
+  }
+  store: any
 }
 
 export default function InvoiceModal({ isOpen, onClose, order, store }: InvoiceModalProps) {
-  const printRef = useRef<HTMLDivElement>(null)
-
   if (!isOpen) return null
 
-  const sym = store.currency_symbol
+  const currencySymbol = store?.currency_symbol || '₹'
 
   const handlePrint = () => {
-    if (!printRef.current) return
-    const win = window.open('', '_blank')
-    if (!win) return
-    win.document.write(`
-      <html>
-        <head>
-          <title>Invoice #${order.order_number || order.id.slice(0, 8).toUpperCase()}</title>
-          <style>
-            @page { size: 80mm auto; margin: 4mm; }
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: 'Courier New', monospace; font-size: 11px; width: 80mm; }
-            .center { text-align: center; }
-            .bold { font-weight: bold; }
-            .row { display: flex; justify-content: space-between; }
-            .divider { border-top: 1px dashed #000; margin: 4px 0; }
-            .store-name { font-size: 16px; font-weight: bold; margin-bottom: 2px; }
-            .items-table { width: 100%; border-collapse: collapse; }
-            .items-table td { padding: 1px 0; vertical-align: top; }
-            .items-table .amt { text-align: right; white-space: nowrap; }
-          </style>
-        </head>
-        <body>${printRef.current.innerHTML}</body>
-      </html>
-    `)
-    win.document.close()
-    win.focus()
-    setTimeout(() => { win.print(); win.close() }, 300)
+    window.print()
   }
 
-  const handleWhatsApp = () => {
-    const lines = [
-      `*${store.name}*`,
-      store.address ? store.address : '',
-      store.phone ? `Ph: ${store.phone}` : '',
-      '',
-      `Order #${order.order_number || order.id.slice(0, 8).toUpperCase()}`,
-      `Date: ${new Date(order.created_at).toLocaleString()}`,
-      `Type: ${(order.order_type || '').replace(/_/g, ' ') || 'Walk In'}`,
-      '──────────────',
-      ...order.items.map(i => `${i.product_name} x${i.quantity}  ${formatCurrency(i.line_total, sym)}`),
-      '──────────────',
-      `Subtotal: ${formatCurrency(order.subtotal, sym)}`,
-      order.discount_amount > 0 ? `Discount: -${formatCurrency(order.discount_amount, sym)}` : '',
-      order.tax_amount > 0 ? `Tax: ${formatCurrency(order.tax_amount, sym)}` : '',
-      order.parcel_charges > 0 ? `Parcel: ${formatCurrency(order.parcel_charges, sym)}` : '',
-      `*Total: ${formatCurrency(order.total, sym)}*`,
-      `Payment: ${(order.payment_method || '').toUpperCase()}`,
-      '',
-      store.receipt_footer || 'Thank you for your visit!',
-    ].filter(Boolean).join('\n')
+  const buildWhatsAppText = () => {
+    let text = `*${store?.name || 'Store Receipt'}*\n`
+    if (store?.address) text += `${store.address}\n`
+    if (store?.phone) text += `Ph: ${store.phone}\n`
+    text += `============================\n`
+    text += `Order No: #${order.order_number}\n`
+    text += `Date: ${new Date(order.created_at).toLocaleString()}\n`
+    text += `Cashier: ${order.cashier_name || 'Staff'}\n`
+    text += `Type: ${order.order_type.toUpperCase()}\n`
+    text += `============================\n`
+    
+    order.items.forEach((item: any) => {
+      const lineTotal = item.line_total ?? (item.quantity * item.price)
+      text += `${item.product_name}\n`
+      text += `  ${item.quantity} x ${currencySymbol}${item.price || item.unit_price} = ${currencySymbol}${lineTotal}\n`
+    })
 
-    const url = `https://wa.me/?text=${encodeURIComponent(lines)}`
-    window.open(url, '_blank')
+    text += `============================\n`
+    text += `Subtotal: ${currencySymbol}${order.subtotal}\n`
+    if (order.discount_percent > 0) {
+      text += `Discount (${order.discount_percent}%): -${currencySymbol}${order.discount_amount}\n`
+    }
+    if (order.parcel_charges > 0) {
+      text += `Parcel Charges: +${currencySymbol}${order.parcel_charges}\n`
+    }
+    if (order.tax_amount > 0) {
+      text += `Tax: +${currencySymbol}${order.tax_amount}\n`
+    }
+    text += `*TOTAL BILL: ${currencySymbol}${order.total}*\n`
+    text += `============================\n`
+    text += `Payment: ${order.payment_method.toUpperCase()}\n`
+    if (order.note) text += `Note: ${order.note}\n`
+    text += `============================\n`
+    text += `${store?.receipt_footer || 'Thank you for visiting!'}`
+
+    return encodeURIComponent(text)
+  }
+
+  const handleWhatsAppShare = () => {
+    const text = buildWhatsAppText()
+    const phone = order.customer_phone || ''
+    window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${text}`, '_blank')
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm border border-muted overflow-hidden flex flex-col max-h-[92vh]">
-        
-        {/* Screen Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h2 className="text-base font-bold font-poppins">Invoice Preview</h2>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handleWhatsApp} className="flex gap-1.5 text-xs">
-              <Share2 className="w-3.5 h-3.5" /> WhatsApp
-            </Button>
-            <Button size="sm" onClick={handlePrint} className="flex gap-1.5 text-xs bg-primary hover:bg-primary/90">
-              <Printer className="w-3.5 h-3.5" /> Print
-            </Button>
-            <button onClick={onClose} className="p-1 rounded-full hover:bg-muted text-muted-foreground">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Modal Card */}
+      <div className="relative bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-gray-150 flex flex-col max-h-[90vh] overflow-hidden animate-zoom-in">
+        {/* Header Controls */}
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0 bg-gray-50 print:hidden">
+          <h3 className="font-bold text-gray-900 font-heading">Receipt Invoice</h3>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-gray-400 hover:text-gray-950 hover:bg-gray-150 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Printable Receipt Body */}
-        <div className="overflow-y-auto flex-1 p-4">
+        {/* Printable thermal receipt view */}
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
           <div
-            ref={printRef}
-            className="font-mono text-xs mx-auto"
-            style={{ width: '100%', maxWidth: '300px' }}
+            id="receipt-print-area"
+            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 font-mono text-xs text-gray-800 leading-relaxed max-w-[80mm] mx-auto"
           >
-            {/* Store Header */}
-            <div className="text-center mb-3">
-              {store.logo_url && (
-                <img src={store.logo_url} alt="Logo" className="w-14 h-14 object-contain mx-auto mb-1 rounded" />
-              )}
-              <div className="text-base font-bold">{store.name}</div>
-              {store.address && <div className="text-[10px] text-gray-600">{store.address}</div>}
-              {store.phone && <div className="text-[10px] text-gray-600">Ph: {store.phone}</div>}
-              {store.email && <div className="text-[10px] text-gray-600">{store.email}</div>}
+            {/* Store Information */}
+            <div className="text-center space-y-1 mb-4">
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-tight">{store?.name}</h2>
+              {store?.tagline && <p className="text-[10px] text-gray-500 italic">{store.tagline}</p>}
+              {store?.address && <p className="text-[10px] text-gray-500">{store.address}</p>}
+              {store?.phone && <p className="text-[10px] text-gray-500">Ph: {store.phone}</p>}
             </div>
 
-            <div className="border-t border-dashed border-gray-400 my-2" />
-
-            {/* Order Meta */}
-            <div className="text-[10px] space-y-0.5 mb-2">
-              <div className="flex justify-between">
-                <span>Order #:</span>
-                <span className="font-bold">{order.order_number || order.id.slice(0, 8).toUpperCase()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Date:</span>
-                <span>{new Date(order.created_at).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Type:</span>
-                <span className="capitalize">{(order.order_type || '').replace(/_/g, ' ') || 'Walk In'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Payment:</span>
-                <span className="capitalize font-bold">{(order.payment_method || '').toUpperCase()}</span>
-              </div>
-              {order.customer_name && (
-                <div className="flex justify-between">
-                  <span>Customer:</span>
-                  <span>{order.customer_name}</span>
-                </div>
-              )}
+            <div className="border-t border-dashed border-gray-250 py-2.5 space-y-1 text-[10px]">
+              <div>Order No: #{order.order_number}</div>
+              <div>Date: {new Date(order.created_at).toLocaleString()}</div>
+              <div>Cashier: {order.cashier_name || 'Staff'}</div>
+              <div>Type: {order.order_type.toUpperCase()}</div>
             </div>
-
-            <div className="border-t border-dashed border-gray-400 my-2" />
 
             {/* Items Table */}
-            <table className="w-full text-[10px]">
+            <table className="w-full text-left text-[10px] border-t border-dashed border-gray-250 mt-2">
               <thead>
-                <tr>
-                  <td className="font-bold pb-1">Item</td>
-                  <td className="font-bold pb-1 text-center">Qty</td>
-                  <td className="font-bold pb-1 text-right">Rate</td>
-                  <td className="font-bold pb-1 text-right">Amt</td>
+                <tr className="border-b border-dashed border-gray-250 font-bold text-gray-900">
+                  <th className="py-2">Item</th>
+                  <th className="py-2 text-center w-8">Qty</th>
+                  <th className="py-2 text-right w-16">Price</th>
                 </tr>
               </thead>
-              <tbody>
-                {order.items.map((item, idx) => (
-                  <tr key={item.id || idx}>
-                    <td className="pr-1 align-top py-0.5" style={{ maxWidth: '90px', wordBreak: 'break-word' }}>
-                      {item.product_name}
-                      {item.discount_percent > 0 && (
-                        <span className="text-gray-500"> (-{item.discount_percent}%)</span>
-                      )}
-                    </td>
-                    <td className="text-center py-0.5">{item.quantity}</td>
-                    <td className="text-right py-0.5 whitespace-nowrap">{formatCurrency(item.unit_price, sym)}</td>
-                    <td className="text-right py-0.5 whitespace-nowrap font-bold">{formatCurrency(item.line_total, sym)}</td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-dashed divide-gray-200">
+                {order.items.map((item: any, idx: number) => {
+                  const itemPrice = item.price || item.unit_price || 0
+                  const lineTotal = item.line_total ?? (item.quantity * itemPrice)
+                  return (
+                    <tr key={idx} className="align-top">
+                      <td className="py-2 pr-1">{item.product_name}</td>
+                      <td className="py-2 text-center">{item.quantity}</td>
+                      <td className="py-2 text-right">{formatCurrency(lineTotal, currencySymbol)}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
 
-            <div className="border-t border-dashed border-gray-400 my-2" />
-
-            {/* Totals */}
-            <div className="text-[10px] space-y-0.5">
+            {/* Totals Section */}
+            <div className="border-t border-dashed border-gray-250 pt-2.5 mt-2 space-y-1.5 text-[10px]">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>{formatCurrency(order.subtotal, sym)}</span>
+                <span>{formatCurrency(order.subtotal, currencySymbol)}</span>
               </div>
-              {order.discount_amount > 0 && (
-                <div className="flex justify-between text-green-700">
+              {order.discount_percent > 0 && (
+                <div className="flex justify-between text-gray-600">
                   <span>Discount ({order.discount_percent}%)</span>
-                  <span>-{formatCurrency(order.discount_amount, sym)}</span>
+                  <span>-{formatCurrency(order.discount_amount, currencySymbol)}</span>
                 </div>
               )}
               {order.parcel_charges > 0 && (
                 <div className="flex justify-between">
                   <span>Parcel Charges</span>
-                  <span>{formatCurrency(order.parcel_charges, sym)}</span>
+                  <span>+{formatCurrency(order.parcel_charges, currencySymbol)}</span>
                 </div>
               )}
               {order.tax_amount > 0 && (
                 <div className="flex justify-between">
                   <span>Tax</span>
-                  <span>{formatCurrency(order.tax_amount, sym)}</span>
+                  <span>+{formatCurrency(order.tax_amount, currencySymbol)}</span>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-sm pt-1 border-t border-gray-300">
-                <span>TOTAL</span>
-                <span>{formatCurrency(order.total, sym)}</span>
+              <div className="flex justify-between text-xs font-bold text-gray-900 pt-1.5 border-t border-dashed border-gray-200">
+                <span>TOTAL BILL</span>
+                <span>{formatCurrency(order.total, currencySymbol)}</span>
               </div>
             </div>
 
-            <div className="border-t border-dashed border-gray-400 my-2" />
-
-            {/* Footer */}
-            <div className="text-center text-[10px] text-gray-500 italic">
-              {store.receipt_footer || 'Thank you for your business!'}
+            {/* Receipt Footer */}
+            <div className="border-t border-dashed border-gray-250 pt-3 mt-4 text-center space-y-1 text-[9px] text-gray-500">
+              <div>Payment: {order.payment_method.toUpperCase()}</div>
+              {order.note && <div className="italic">Note: "{order.note}"</div>}
+              <div className="font-bold uppercase tracking-wider mt-2.5">{store?.receipt_footer || 'THANK YOU FOR VISITING!'}</div>
             </div>
           </div>
         </div>
 
-        {/* Bottom close action */}
-        <div className="p-4 border-t">
-          <Button variant="outline" className="w-full" onClick={onClose}>Close Invoice</Button>
+        {/* Footer controls */}
+        <div className="p-4 border-t border-gray-100 flex gap-2 shrink-0 bg-white print:hidden">
+          <button
+            onClick={handleWhatsAppShare}
+            className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-xs font-body flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/10 transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" /> Share WhatsApp
+          </button>
+          
+          <button
+            onClick={handlePrint}
+            className="flex-1 py-2.5 bg-[#0f766e] hover:bg-[#0d635c] text-white rounded-xl font-semibold text-xs font-body flex items-center justify-center gap-1.5 shadow-md shadow-[#0f766e]/10 transition-colors"
+          >
+            <Printer className="w-4 h-4" /> Print Invoice
+          </button>
         </div>
       </div>
+
+      {/* Global CSS Inject for Page Print Styling */}
+      <style>{`
+        @keyframes zoom-in {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        .animate-zoom-in {
+          animation: zoom-in 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #receipt-print-area, #receipt-print-area * {
+            visibility: visible;
+          }
+          #receipt-print-area {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 80mm;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            margin: 0;
+            background: white;
+          }
+        }
+      `}</style>
     </div>
   )
 }

@@ -1,96 +1,89 @@
-// File Path: d:/Projects/Web/Universal POS/src/components/pos/ProductGrid.tsx
-
-import { useState, useMemo } from 'react'
-import { Search, Inbox } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { formatCurrency } from '@/lib/formatCurrency'
-import type { Product } from '@/types'
+// src/components/pos/ProductGrid.tsx
+import React from 'react'
+import { Product } from '../../types'
+import { formatCurrency } from '../../lib/utils'
+import EmptyState from '../shared/EmptyState'
+import { Package } from 'lucide-react'
 
 interface ProductGridProps {
   products: Product[]
-  onAddCartItem: (product: Product) => void
-  currencySymbol?: string
+  onAddProduct: (product: Product) => void
+  currencySymbol: string
 }
 
 export default function ProductGrid({
   products,
-  onAddCartItem,
-  currencySymbol = '₹',
+  onAddProduct,
+  currencySymbol,
 }: ProductGridProps) {
-  const [search, setSearch] = useState('')
-
-  const filteredProducts = useMemo(() => {
-    return products.filter((p) =>
-      p.name.toLowerCase().includes(search.toLowerCase())
-    )
-  }, [products, search])
-
-  return (
-    <div className="flex-1 flex flex-col space-y-3 h-full min-h-0">
-      {/* Search Input - Sticky, 44px height */}
-      <div className="relative sticky top-0 bg-background/95 backdrop-blur-xs z-10 pb-1">
-        <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-3.5" />
-        <Input
-          placeholder="Search items by name or scan barcode..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 h-11 bg-white/50 border-white/50 font-medium"
+  if (products.length === 0) {
+    return (
+      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm flex items-center justify-center min-h-[300px]">
+        <EmptyState
+          icon={<Package className="w-8 h-8 text-gray-400" />}
+          title="No Products Found"
+          description="Try changing the category or adding new products to the inventory."
         />
       </div>
+    )
+  }
 
-      {/* Grid Container */}
-      <div className="flex-1 overflow-y-auto pr-1 scroll-smooth">
-        {filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center p-8 bg-white/30 border border-white/40 rounded-2xl min-h-[250px]">
-            <Inbox className="w-8 h-8 text-muted-foreground mb-2" />
-            <p className="text-xs sm:text-sm font-semibold text-muted-foreground">No matching products found</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {filteredProducts.map((p) => {
-              const handleAddClick = () => {
-                if (p.is_available) {
-                  onAddCartItem(p)
-                }
-              }
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto max-h-[calc(100vh-14.5rem)] pr-1 pb-4">
+      {products.map((product) => {
+        const available = product.is_available ?? true
 
-              return (
-                <button
-                  key={p.id}
-                  onClick={handleAddClick}
-                  disabled={!p.is_available}
-                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between space-y-2 transition-all duration-200 min-h-[85px] h-28 ${
-                    p.is_available
-                      ? 'border-white/50 bg-white hover:bg-white/80 hover:shadow-md active:scale-97 cursor-pointer'
-                      : 'border-muted/30 bg-muted/10 opacity-60 cursor-not-allowed'
-                  }`}
-                >
-                  <div className="space-y-0.5 w-full">
-                    <h4 className="text-xs font-bold text-foreground font-poppins line-clamp-2 leading-tight">
-                      {p.name}
-                    </h4>
-                    {p.unit && (
-                      <span className="text-[9px] font-semibold text-muted-foreground uppercase block truncate">
-                        {p.unit}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-end justify-between w-full">
-                    <span className="text-xs sm:text-sm font-extrabold text-primary font-poppins">
-                      {formatCurrency(p.price, currencySymbol)}
-                    </span>
-                    {!p.is_available && (
-                      <span className="text-[8px] font-bold text-red-600 bg-red-50 border border-red-200 px-1 py-0.5 rounded uppercase tracking-wider flex-shrink-0">
-                        Out Stock
-                      </span>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
+        return (
+          <button
+            key={product.id}
+            disabled={!available}
+            onClick={() => onAddProduct(product)}
+            className={`flex flex-col text-left bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm transition-all relative ${
+              available
+                ? 'hover:shadow-md active:scale-[0.97] hover:border-gray-200'
+                : 'opacity-60 cursor-not-allowed bg-gray-50'
+            }`}
+          >
+            {/* Image section */}
+            <div className="w-full aspect-[4/3] bg-gray-50 flex items-center justify-center relative border-b border-gray-100 shrink-0">
+              {product.image_url ? (
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center text-gray-300">
+                  <Package className="w-8 h-8" />
+                  <span className="text-[10px] uppercase font-bold tracking-wider mt-1">{product.unit || 'pc'}</span>
+                </div>
+              )}
+
+              {/* Availability tag */}
+              {!available && (
+                <span className="absolute top-2 right-2 bg-red-500 text-white font-bold text-[9px] tracking-wide uppercase px-2 py-0.5 rounded-full border border-red-400/20 shadow-sm">
+                  Unavailable
+                </span>
+              )}
+            </div>
+
+            {/* Info details */}
+            <div className="p-3.5 flex flex-col justify-between flex-1 min-h-[80px]">
+              <h4 className="font-bold text-gray-800 text-sm font-heading line-clamp-2 leading-snug">
+                {product.name}
+              </h4>
+              <div className="flex items-center justify-between mt-2.5">
+                <span className="text-xs font-semibold font-body text-gray-400">
+                  Per {product.unit || 'pc'}
+                </span>
+                <span className="font-bold text-gray-900 text-sm font-body">
+                  {formatCurrency(product.price, currencySymbol)}
+                </span>
+              </div>
+            </div>
+          </button>
+        )
+      })}
     </div>
   )
 }
