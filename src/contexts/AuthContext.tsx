@@ -1,6 +1,6 @@
 // File Path: d:/Projects/Web/Universal POS/src/contexts/AuthContext.tsx
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useEffect, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
 import { useAuthStore } from '../store/authStore'
@@ -63,5 +63,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   )
 }
-
-export const useAuth = () => useContext(AuthContext)

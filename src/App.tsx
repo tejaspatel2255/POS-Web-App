@@ -3,24 +3,25 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './contexts/AuthContext'
-import { lazy, Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
+import { startSyncEngine } from './lib/syncEngine'
 
 // Layout
 import AppShell from './components/layout/AppShell'
 import { ProtectedRoute } from './components/layout/ProtectedRoute'
 
-// Lazy-loaded Pages
-const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
-const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
-const CreateStorePage = lazy(() => import('./pages/auth/CreateStorePage'))
-const SelectStorePage = lazy(() => import('./pages/auth/SelectStorePage'))
+// Static imports for instant page loads
+import LoginPage from './pages/auth/LoginPage'
+import RegisterPage from './pages/auth/RegisterPage'
+import CreateStorePage from './pages/auth/CreateStorePage'
+import SelectStorePage from './pages/auth/SelectStorePage'
 
-const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'))
-const Billing = lazy(() => import('./pages/billing/BillingScreen'))
-const MenuManagement = lazy(() => import('./pages/menu/MenuManagement'))
-const OrderHistory = lazy(() => import('./pages/orders/OrderHistory'))
-const Reports = lazy(() => import('./pages/reports/Reports'))
-const Settings = lazy(() => import('./pages/settings/Settings'))
+import Dashboard from './pages/dashboard/Dashboard'
+import Billing from './pages/billing/BillingScreen'
+import MenuManagement from './pages/menu/MenuManagement'
+import OrderHistory from './pages/orders/OrderHistory'
+import Reports from './pages/reports/Reports'
+import Settings from './pages/settings/Settings'
 
 const queryClient = new QueryClient()
 
@@ -35,6 +36,11 @@ const PageLoader = () => (
 )
 
 export default function App() {
+  useEffect(() => {
+    const cleanup = startSyncEngine()
+    return cleanup
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

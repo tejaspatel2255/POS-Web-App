@@ -1,33 +1,42 @@
 // File Path: d:/Projects/Web/Universal POS/src/hooks/useAuth.ts
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuthStore } from '../store/authStore'
+import { syncPendingOrders } from '../lib/syncEngine'
 import type { Store, StoreMember } from '../types'
 
+let authListenerInitialized = false
+
 export function useAuth() {
-  const { user, activeStore, activeMember, setActiveStore, setUser, logout } = useAuthStore()
-  const [loading, setLoading] = useState(true)
+  const { user, activeStore, activeMember, loading, setActiveStore, setUser, setLoading, logout } = useAuthStore()
 
   useEffect(() => {
+    if (authListenerInitialized) return
+    authListenerInitialized = true
+
     // 1. Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
       if (currentUser) {
-        syncUserStoreMembership(currentUser.id)
+        const hasCachedState = !!activeStore && !!activeMember
+        await syncUserStoreMembership(currentUser.id, hasCachedState)
+        syncPendingOrders()
       } else {
         setLoading(false)
       }
     })
 
     // 2. Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
       
       if (currentUser) {
-        await syncUserStoreMembership(currentUser.id)
+        const hasCachedState = !!activeStore && !!activeMember
+        await syncUserStoreMembership(currentUser.id, hasCachedState)
+        syncPendingOrders()
       } else {
         logout()
         setLoading(false)
@@ -35,12 +44,15 @@ export function useAuth() {
     })
 
     return () => {
-      subscription.unsubscribe()
+      // Global listener persists across mounts
     }
   }, [])
 
-  const syncUserStoreMembership = async (userId: string) => {
+  const syncUserStoreMembership = async (userId: string, silent = false) => {
     try {
+      if (!silent) {
+        setLoading(true)
+      }
       // Fetch all store memberships for the user, joining the store info
       const { data: members, error } = await (supabase
         .from('store_members') as any)
@@ -103,7 +115,9 @@ export function useAuth() {
     } catch (err) {
       console.error('Error syncing store memberships:', err)
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }
 

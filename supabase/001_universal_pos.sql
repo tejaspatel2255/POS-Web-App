@@ -141,7 +141,7 @@ CREATE OR REPLACE FUNCTION public.store_has_members(p_store_id uuid)
 RETURNS boolean AS $$
 BEGIN
   RETURN EXISTS (
-    SELECT 1 FROM public.store_members WHERE store_id = p_store_id
+    SELECT 1 FROM public.store_members WHERE store_id = p_store_id AND user_id != auth.uid()
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -180,6 +180,8 @@ CREATE POLICY "Allow members to view store" ON stores
   FOR SELECT TO authenticated
   USING (
     get_user_store_role(id) IS NOT NULL
+    OR
+    NOT public.store_has_members(id)
   );
 
 CREATE POLICY "Allow members to update store" ON stores

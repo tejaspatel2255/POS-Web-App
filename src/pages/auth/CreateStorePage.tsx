@@ -50,12 +50,14 @@ export default function CreateStorePage() {
     setError(null)
 
     const selectedColor = customColor && /^#[0-9A-Fa-f]{6}$/.test(customColor) ? customColor : themeColor
+    const storeId = crypto.randomUUID()
 
     try {
-      // 1. Insert into stores
-      const { data: store, error: storeError } = await (supabase
+      // 1. Insert into stores (without .select() to avoid RLS read policy blocking before membership exists)
+      const { error: storeError } = await (supabase
         .from('stores') as any)
         .insert({
+          id: storeId,
           name,
           store_type: storeType,
           currency_symbol: currencySymbol,
@@ -63,27 +65,35 @@ export default function CreateStorePage() {
           address: address || null,
           theme_color: selectedColor,
         })
-        .select()
-        .single()
 
       if (storeError) throw storeError
-      if (!store) throw new Error('Failed to create store record')
 
       // 2. Insert into store_members as 'owner'
       const { data: member, error: memberError } = await (supabase
         .from('store_members') as any)
         .insert({
-          store_id: store.id,
+          store_id: storeId,
           user_id: user.id,
           role: 'owner',
           full_name: user.user_metadata?.full_name || 'Owner',
+          is_active: true,
         })
         .select()
         .single()
 
       if (memberError) throw memberError
 
-      // 3. Set active store context and redirect
+      // 3. Since user is now registered as a member, they can successfully select the store
+      const { data: store, error: fetchStoreError } = await (supabase
+        .from('stores') as any)
+        .select()
+        .eq('id', storeId)
+        .single()
+
+      if (fetchStoreError) throw fetchStoreError
+      if (!store) throw new Error('Failed to retrieve the created store record')
+
+      // 4. Set active store context and redirect
       setActiveStore(store as unknown as Store, member as unknown as StoreMember)
       navigate('/dashboard')
     } catch (err: any) {
