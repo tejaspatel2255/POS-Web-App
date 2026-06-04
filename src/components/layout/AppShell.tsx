@@ -16,7 +16,7 @@ import type { Store, StoreMember } from '@/types'
 export default function AppShell() {
   const navigate = useNavigate()
   const { user, activeStore, activeMember } = useAuth()
-  const { setActiveStore } = useAuthStore()
+  const { setActiveStore, setActiveMember } = useAuthStore()
   const { setStoreId } = useCartStore()
   const { toasts } = useToast()
 
@@ -104,7 +104,8 @@ export default function AppShell() {
 
   const handleSwitchStore = (m: any) => {
     const { store, ...memberData } = m
-    setActiveStore(store as Store, memberData as StoreMember)
+    setActiveStore(store as Store)
+    setActiveMember(memberData as StoreMember)
     setIsStoreDropdownOpen(false)
     setIsSidebarOpen(false)
     // Clear and reload dashboard/billing to apply new store constraints

@@ -1,51 +1,77 @@
 // File Path: d:/Projects/Web/Universal POS/src/App.tsx
 
+import React, { Suspense, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './contexts/AuthContext'
-import { Suspense, useEffect } from 'react'
 import { startSyncEngine } from './lib/syncEngine'
+import { useAuthStore } from './store/authStore'
+import { supabase } from './lib/supabaseClient'
 
 // Layout
 import AppShell from './components/layout/AppShell'
 import { ProtectedRoute } from './components/layout/ProtectedRoute'
 
-// Static imports for instant page loads
-import LoginPage from './pages/auth/LoginPage'
-import RegisterPage from './pages/auth/RegisterPage'
-import CreateStorePage from './pages/auth/CreateStorePage'
-import SelectStorePage from './pages/auth/SelectStorePage'
+// Lazy loaded page components
+const LoginPage = React.lazy(() => import('./pages/auth/LoginPage'))
+const RegisterPage = React.lazy(() => import('./pages/auth/RegisterPage'))
+const CreateStorePage = React.lazy(() => import('./pages/auth/CreateStorePage'))
+const SelectStorePage = React.lazy(() => import('./pages/auth/SelectStorePage'))
 
-import Dashboard from './pages/dashboard/Dashboard'
-import Billing from './pages/billing/BillingScreen'
-import MenuManagement from './pages/menu/MenuManagement'
-import OrderHistory from './pages/orders/OrderHistory'
-import Reports from './pages/reports/Reports'
-import Settings from './pages/settings/Settings'
+const Dashboard = React.lazy(() => import('./pages/dashboard/Dashboard'))
+const Billing = React.lazy(() => import('./pages/billing/BillingScreen'))
+const MenuManagement = React.lazy(() => import('./pages/menu/MenuManagement'))
+const OrderHistory = React.lazy(() => import('./pages/orders/OrderHistory'))
+const Reports = React.lazy(() => import('./pages/reports/Reports'))
+const Settings = React.lazy(() => import('./pages/settings/Settings'))
 
-const queryClient = new QueryClient()
-
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-    <div className="relative flex flex-col items-center gap-4">
-      <img src="/logo.png" alt="Universal POS Logo" className="w-16 h-16 object-contain animate-pulse" />
-      <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-      <p className="text-xs font-bold text-muted-foreground tracking-wider uppercase">Loading Workspace...</p>
-    </div>
-  </div>
-)
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 10,
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+    },
+  },
+})
 
 export default function App() {
+  const { logout } = useAuthStore()
+
   useEffect(() => {
     const cleanup = startSyncEngine()
-    return cleanup
-  }, [])
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        logout()
+      }
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event) => {
+        if (event === 'SIGNED_OUT') {
+          logout()
+        }
+      }
+    )
+
+    return () => {
+      cleanup()
+      subscription.unsubscribe()
+    }
+  }, [logout])
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
-          <Suspense fallback={<PageLoader />}>
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-screen">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
+            </div>
+          }>
             <Routes>
               {/* Public Authentication Routes */}
               <Route path="/login" element={<LoginPage />} />

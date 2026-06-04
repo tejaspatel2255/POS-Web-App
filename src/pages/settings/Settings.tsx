@@ -24,7 +24,7 @@ const PRESET_COLORS = [
 export default function Settings() {
   const { toast } = useToast()
   const { user, activeStore, activeMember } = useAuth()
-  const { setActiveStore } = useAuthStore()
+  const { setActiveStore, setActiveMember } = useAuthStore()
   
   const [activeTab, setActiveTab] = useState<'profile' | 'order_types' | 'staff'>('profile')
   const [loading, setLoading] = useState(true)
@@ -149,7 +149,8 @@ export default function Settings() {
       if (error) throw error
 
       // Update Zustand local context
-      setActiveStore(data as Store, activeMember as StoreMember)
+      setActiveStore(data as Store)
+      setActiveMember(activeMember as StoreMember)
       
       toast({
         title: '✅ Settings Saved',

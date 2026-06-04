@@ -31,7 +31,7 @@ const COLOR_PRESETS = [
 
 export default function CreateStorePage() {
   const navigate = useNavigate()
-  const { user, setActiveStore } = useAuthStore()
+  const { setActiveStore, setActiveMember } = useAuthStore()
   
   const [name, setName] = useState('')
   const [storeType, setStoreType] = useState('retail')
@@ -45,7 +45,6 @@ export default function CreateStorePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
     setLoading(true)
     setError(null)
 
@@ -53,8 +52,14 @@ export default function CreateStorePage() {
     const storeId = crypto.randomUUID()
 
     try {
-      // 1. Insert into stores (without .select() to avoid RLS read policy blocking before membership exists)
-      const { error: storeError } = await (supabase
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
+      if (userError || !currentUser) {
+        navigate('/login')
+        return
+      }
+
+      // 1. Insert store
+      const { data: storeData, error: storeError } = await (supabase
         .from('stores') as any)
         .insert({
           id: storeId,
@@ -65,39 +70,34 @@ export default function CreateStorePage() {
           address: address || null,
           theme_color: selectedColor,
         })
+        .select()
+        .single()
 
-      if (storeError) throw storeError
+      if (storeError) throw new Error(`Store creation failed: ${storeError.message}`)
 
-      // 2. Insert into store_members as 'owner'
-      const { data: member, error: memberError } = await (supabase
+      // 2. Insert store member
+      const { data: memberData, error: memberError } = await (supabase
         .from('store_members') as any)
         .insert({
-          store_id: storeId,
-          user_id: user.id,
+          store_id: storeData.id,
+          user_id: currentUser.id,
           role: 'owner',
-          full_name: user.user_metadata?.full_name || 'Owner',
+          full_name: currentUser.user_metadata?.full_name ?? 'Owner',
           is_active: true,
         })
         .select()
         .single()
 
-      if (memberError) throw memberError
+      if (memberError) throw new Error(`Member creation failed: ${memberError.message}`)
 
-      // 3. Since user is now registered as a member, they can successfully select the store
-      const { data: store, error: fetchStoreError } = await (supabase
-        .from('stores') as any)
-        .select()
-        .eq('id', storeId)
-        .single()
-
-      if (fetchStoreError) throw fetchStoreError
-      if (!store) throw new Error('Failed to retrieve the created store record')
-
-      // 4. Set active store context and redirect
-      setActiveStore(store as unknown as Store, member as unknown as StoreMember)
+      // 3. Update auth store state
+      setActiveStore(storeData as unknown as Store)
+      setActiveMember(memberData as unknown as StoreMember)
       navigate('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Failed to create store')
+      console.error('CreateStore error:', err)
+    } finally {
       setLoading(false)
     }
   }

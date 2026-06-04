@@ -1,6 +1,6 @@
 // File Path: d:/Projects/Web/Universal POS/src/hooks/useAuth.ts
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuthStore } from '../store/authStore'
 import { syncPendingOrders } from '../lib/syncEngine'
@@ -9,7 +9,8 @@ import type { Store, StoreMember } from '../types'
 let authListenerInitialized = false
 
 export function useAuth() {
-  const { user, activeStore, activeMember, loading, setActiveStore, setUser, setLoading, logout } = useAuthStore()
+  const { user, activeStore, activeMember, setActiveStore, setActiveMember, setUser, logout } = useAuthStore()
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (authListenerInitialized) return
@@ -90,7 +91,8 @@ export function useAuth() {
 
       if (!members || members.length === 0) {
         // No stores found - user needs to create one
-        setActiveStore(null, null)
+        setActiveStore(null)
+        setActiveMember(null)
       } else {
         // User has stores. Check if their current activeStore is still valid
         const stillMemberOfActive = activeStore 
@@ -100,15 +102,18 @@ export function useAuth() {
         if (stillMemberOfActive) {
           // Keep the current active store, update the member role/details
           const { store, ...memberData } = stillMemberOfActive as any
-          setActiveStore(store as unknown as Store, memberData as unknown as StoreMember)
+          setActiveStore(store as unknown as Store)
+          setActiveMember(memberData as unknown as StoreMember)
         } else if (members.length === 1) {
           // If only 1 store, set it automatically
           const { store, ...memberData } = members[0] as any
-          setActiveStore(store as unknown as Store, memberData as unknown as StoreMember)
+          setActiveStore(store as unknown as Store)
+          setActiveMember(memberData as unknown as StoreMember)
         } else {
           // Multiple stores, let user select one (do not force first one if they already selected)
           if (!activeStore) {
-            setActiveStore(null, null)
+            setActiveStore(null)
+            setActiveMember(null)
           }
         }
       }

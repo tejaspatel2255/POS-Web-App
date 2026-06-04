@@ -32,7 +32,7 @@ interface MemberWithStore {
 
 export default function SelectStorePage() {
   const navigate = useNavigate()
-  const { user, setActiveStore } = useAuthStore()
+  const { user, setActiveStore, setActiveMember } = useAuthStore()
   const [memberships, setMemberships] = useState<MemberWithStore[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -91,7 +91,8 @@ export default function SelectStorePage() {
 
   const handleSelectStore = (membership: MemberWithStore) => {
     const { store, ...memberData } = membership
-    setActiveStore(store, memberData as unknown as StoreMember)
+    setActiveStore(store)
+    setActiveMember(memberData as unknown as StoreMember)
     navigate('/dashboard')
   }
 

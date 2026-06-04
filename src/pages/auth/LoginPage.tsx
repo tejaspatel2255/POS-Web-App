@@ -11,7 +11,7 @@ import type { Store, StoreMember } from '@/types'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { setUser, setActiveStore } = useAuthStore()
+  const { setUser, setActiveStore, setActiveMember } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -71,15 +71,18 @@ export default function LoginPage() {
 
       // 3. Route user according to membership count
       if (!members || members.length === 0) {
-        setActiveStore(null, null)
+        setActiveStore(null)
+        setActiveMember(null)
         navigate('/create-store')
       } else if (members.length === 1) {
         const { store, ...memberData } = members[0] as any
-        setActiveStore(store as unknown as Store, memberData as unknown as StoreMember)
+        setActiveStore(store as unknown as Store)
+        setActiveMember(memberData as unknown as StoreMember)
         navigate('/dashboard')
       } else {
         // Clear active store and let them choose
-        setActiveStore(null, null)
+        setActiveStore(null)
+        setActiveMember(null)
         navigate('/select-store')
       }
     } catch (err: any) {
