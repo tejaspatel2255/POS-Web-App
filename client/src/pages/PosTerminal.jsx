@@ -129,8 +129,10 @@ export default function PosTerminal() {
   }, [user]);
 
   // Filter products based on search and category
+  // NOTE: category_id is a Supabase nested join object — it has `.id`, not `._id`
   const filteredProducts = products.filter((p) => {
-    const matchesCategory = selectedCategory === 'all' || p.category_id?._id === selectedCategory;
+    const catId = p.category_id?.id || p.category_id?._id;
+    const matchesCategory = selectedCategory === 'all' || catId === selectedCategory;
     const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -260,7 +262,7 @@ export default function PosTerminal() {
         quantity: item.quantity,
         price: item.price,
         cost: item.cost,
-        tax_rate_id: item.taxRate?._id || null,
+        tax_rate_id: item.taxRate?.id || item.taxRate?._id || null,
         tax_percentage: item.taxRate ? Number(item.taxRate.percentage) : 0,
         tax_amount: item.taxRate
           ? Number(((item.price * item.quantity) * (Number(item.taxRate.percentage) / 100)).toFixed(2))
@@ -276,7 +278,7 @@ export default function PosTerminal() {
       });
 
       const orderPayload = {
-        customer_id: customer?._id || null,
+        customer_id: customer?.id || customer?._id || null,
         items: orderItems,
         discounts: orderDiscount
           ? [

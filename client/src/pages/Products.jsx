@@ -106,10 +106,10 @@ export default function Products() {
     setName(prod.name);
     setSku(prod.sku);
     setBarcode(prod.barcode || '');
-    setCategory(prod.category_id?._id || '');
+    setCategory(prod.category_id?.id || prod.category_id?._id || '');
     setBasePrice(String(prod.base_price));
     setCostPrice(prod.cost_price ? String(prod.cost_price) : '');
-    setTaxRate(prod.tax_rate_id?._id || '');
+    setTaxRate(prod.tax_rate_id?.id || prod.tax_rate_id?._id || '');
     setStockThreshold(String(prod.stock_threshold));
     setInitialStock(String(prod.stock || 0));
     setStatus(prod.status);
@@ -245,7 +245,8 @@ export default function Products() {
 
   // Filter lists locally
   const filteredProducts = products.filter((p) => {
-    const matchesCategory = selectedCategory === 'all' || p.category_id?._id === selectedCategory;
+    const catId = p.category_id?.id || p.category_id?._id;
+    const matchesCategory = selectedCategory === 'all' || catId === selectedCategory;
     const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
