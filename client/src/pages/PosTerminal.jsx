@@ -503,25 +503,21 @@ export default function PosTerminal() {
           <span>₹{totals.subtotal.toFixed(2)}</span>
         </div>
 
-        {/* Discount Inline Input */}
-        <div className="flex items-center justify-between text-xs text-slate-500 font-semibold gap-3 py-1">
-          <button
-            type="button"
-            onClick={() => setIsDiscountModalOpen(true)}
-            className="flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold cursor-pointer shrink-0"
-            title="Select pre-configured discount"
-          >
-            <span className="font-extrabold mr-1 text-sm leading-none">₹</span>
-            Discount
-          </button>
-          <div className="flex items-center gap-1.5">
-            {totals.discountAmount > 0 && (
-              <span className="text-rose-500 font-bold text-xs mr-1">
-                -₹{totals.discountAmount.toFixed(2)}
-              </span>
-            )}
-            <div className="relative">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+        {/* Discount Input Group */}
+        <div className="pt-1.5 pb-1 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Discount (Rs / %)</span>
+            <button
+              type="button"
+              onClick={() => setIsDiscountModalOpen(true)}
+              className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold"
+            >
+              Select Preset
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-extrabold text-xs">
                 {customDiscountType === 'fixed' ? '₹' : '%'}
               </span>
               <input
@@ -550,7 +546,7 @@ export default function PosTerminal() {
                     });
                   }
                 }}
-                className="w-20 pl-6 pr-1.5 py-1 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-7 pr-3 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <select
@@ -574,12 +570,18 @@ export default function PosTerminal() {
                   });
                 }
               }}
-              className="px-1 py-1 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              className="px-2 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
             >
               <option value="fixed">₹ (Rs)</option>
               <option value="percentage">%</option>
             </select>
           </div>
+          {totals.discountAmount > 0 && (
+            <div className="flex justify-between items-center text-[10px] text-rose-500 font-bold px-0.5">
+              <span>Deducted Amount:</span>
+              <span>-₹{totals.discountAmount.toFixed(2)}</span>
+            </div>
+          )}
         </div>
 
         {/* Taxes summary */}

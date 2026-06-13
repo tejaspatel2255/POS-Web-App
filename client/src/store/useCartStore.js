@@ -67,10 +67,13 @@ export const useCartStore = create((set, get) => ({
   setCustomer: (customer) => set({ customer }),
   
   setDiscount: (discount) => {
+    const prev = get().orderDiscount;
     set({ orderDiscount: discount });
     if (discount) {
-      toast.success(`Discount "${discount.name}" applied`);
-    } else {
+      if (discount._id !== 'custom') {
+        toast.success(`Discount "${discount.name}" applied`);
+      }
+    } else if (prev && prev._id !== 'custom') {
       toast.success('Discount removed');
     }
   },
