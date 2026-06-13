@@ -21,6 +21,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
 import { useShiftStore } from '../store/useShiftStore';
 import { supabase } from '../utils/supabaseClient';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
 import Button from '../components/ui/Button';
@@ -82,6 +83,10 @@ export default function PosTerminal() {
   const [lastCreatedOrder, setLastCreatedOrder] = useState(null);
 
   const [isRecallModalOpen, setIsRecallModalOpen] = useState(false);
+
+  // Responsive UI States
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const [cartSheetOpen, setCartSheetOpen] = useState(false);
 
   // Initialize and Fetch POS data
   const loadPOSData = async () => {
@@ -340,9 +345,186 @@ export default function PosTerminal() {
   };
 
 
+  // JSX variable for cart content (shared between mobile bottom sheet and desktop sidebar)
+  const cartContent = (
+    <div className="flex flex-col h-full bg-white dark:bg-slate-900 overflow-hidden">
+      {/* Cart Header */}
+      <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-50 flex items-center">
+          Shopping Basket
+          <span className="ml-2 w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-655 dark:text-indigo-400 flex items-center justify-center text-[10px] font-black">
+            {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+          </span>
+        </h3>
+        <div className="space-x-1.5 flex items-center">
+          {heldOrders.length > 0 && (
+            <Button
+              variant="secondary"
+              onClick={() => setIsRecallModalOpen(true)}
+              className="!h-8 !px-2.5 rounded-lg text-xs"
+            >
+              Recall ({heldOrders.length})
+            </Button>
+          )}
+          <button
+            onClick={clearCart}
+            className="text-xs font-semibold text-slate-450 hover:text-rose-600 transition-colors p-1"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
+      {/* Customer Attachment Row */}
+      <div className="p-3 bg-slate-50/50 dark:bg-slate-900/20 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+        {customer ? (
+          <div className="flex items-center justify-between w-full">
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{customer.name}</p>
+              <p className="text-[10px] text-slate-400 font-semibold">{customer.phone} • pts: {customer.loyalty_points}</p>
+            </div>
+            <button
+              onClick={() => setCustomer(null)}
+              className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              setCustomerSearch('');
+              setIsCustomerModalOpen(true);
+            }}
+            className="w-full flex items-center justify-center py-2 border border-dashed border-slate-200 dark:border-slate-800 text-slate-450 hover:text-indigo-655 dark:hover:text-indigo-400 rounded-xl hover:bg-slate-100/50 text-xs font-bold cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4 mr-2" /> Add Customer to Sale
+          </button>
+        )}
+      </div>
+
+      {/* Cart items list */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {cartItems.length > 0 ? (
+          cartItems.map((item, index) => (
+            <div
+              key={index}
+              className="flex items-start justify-between bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100/60 dark:border-slate-900"
+            >
+              <div className="min-w-0 flex-1 pr-3">
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-250 truncate">
+                  {item.product.name}
+                </p>
+                {item.variantName && (
+                  <p className="text-[10px] text-indigo-500 font-bold">{item.variantName}</p>
+                )}
+                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 mt-1">
+                  ₹{(item.price * item.quantity).toFixed(2)}
+                </p>
+              </div>
+
+              {/* Qty adjustments */}
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  onClick={() => updateQuantity(item.product._id, item.quantity - 1, item.variantName)}
+                  className="p-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-50 cursor-pointer hover:border-slate-300"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-xs font-black text-slate-800 dark:text-slate-200 w-6 text-center">
+                  {item.quantity}
+                </span>
+                <button
+                  onClick={() => updateQuantity(item.product._id, item.quantity + 1, item.variantName)}
+                  className="p-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-50 cursor-pointer hover:border-slate-300"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => removeFromCart(item.product._id, item.variantName)}
+                  className="p-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-650 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-center p-6">
+            <FolderHeart className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-3" />
+            <p className="text-xs text-slate-405 font-bold">Shopping cart is empty</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Click products on the left to add items</p>
+          </div>
+        )}
+      </div>
+
+      {/* Cart Totals Summary */}
+      <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-2 shrink-0 pb-safe">
+        <div className="flex justify-between text-xs text-slate-500 font-semibold">
+          <span>Subtotal</span>
+          <span>₹{totals.subtotal.toFixed(2)}</span>
+        </div>
+
+        {/* Discount Trigger */}
+        <div className="flex justify-between text-xs text-slate-500 font-semibold items-center">
+          <button
+            onClick={() => setIsDiscountModalOpen(true)}
+            className="flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold cursor-pointer"
+          >
+            <Percent className="w-3.5 h-3.5 mr-1" />
+            {orderDiscount ? `Discount (${orderDiscount.name})` : 'Apply Discount'}
+          </button>
+          {totals.discountAmount > 0 ? (
+            <span className="text-rose-500 font-bold">-₹{totals.discountAmount.toFixed(2)}</span>
+          ) : (
+            <span>₹0.00</span>
+          )}
+        </div>
+
+        {/* Taxes summary */}
+        {totals.taxes.map((tax, idx) => (
+          <div key={idx} className="flex justify-between text-xs text-slate-500 font-semibold">
+            <span>{tax.name}</span>
+            <span>₹{tax.amount.toFixed(2)}</span>
+          </div>
+        ))}
+
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end">
+          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Total Payable</span>
+          <span className="text-xl font-black text-slate-900 dark:text-slate-50">
+            ₹{totals.total.toFixed(2)}
+          </span>
+        </div>
+
+        {/* Action Row */}
+        <div className="flex space-x-2 pt-2">
+          <Button
+            variant="secondary"
+            onClick={holdOrder}
+            disabled={cartItems.length === 0}
+            className="flex-1 rounded-xl !h-10 text-xs"
+          >
+            Hold Sale
+          </Button>
+          <Button
+            variant="success"
+            onClick={() => {
+              openCheckout();
+              setCartSheetOpen(false);
+            }}
+            disabled={cartItems.length === 0 || !isShiftValid}
+            className="flex-2 rounded-xl !h-10 text-xs font-bold"
+          >
+            Complete Sale
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   // Render POS
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-56px)] lg:h-[calc(100vh-64px)] overflow-hidden bg-slate-50 dark:bg-slate-955 relative">
       
       {/* Shift Block Overlay */}
       {!isShiftValid && (
@@ -358,12 +540,12 @@ export default function PosTerminal() {
       )}
 
       {/* Left Panel: Catalog list */}
-      <div className="flex-1 flex flex-col p-6 overflow-hidden">
+      <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden w-full">
         {/* Category filtering chips */}
-        <div className="flex items-center space-x-2 overflow-x-auto pb-4 shrink-0 no-scrollbar">
+        <div className="flex items-center space-x-2 overflow-x-auto pb-4 shrink-0 scrollbar-hide flex-nowrap md:flex-wrap">
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`px-4 h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            className={`px-4 h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${
               selectedCategory === 'all'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-650/10'
                 : 'bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 text-slate-650 dark:text-slate-300'
@@ -375,7 +557,7 @@ export default function PosTerminal() {
             <button
               key={cat._id}
               onClick={() => setSelectedCategory(cat._id)}
-              className={`px-4 h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center cursor-pointer ${
+              className={`px-4 h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center shrink-0 cursor-pointer ${
                 selectedCategory === cat._id
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-650/10'
                   : 'bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 text-slate-650 dark:text-slate-350'
@@ -391,13 +573,13 @@ export default function PosTerminal() {
         </div>
 
         {/* Search tool */}
-        <div className="relative mb-6 shrink-0">
+        <div className="relative mb-4 sm:mb-6 shrink-0">
           <Search className="absolute left-4 top-3.5 w-4.5 h-4.5 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by product name, SKU code, or scan barcode..."
+            placeholder="Search by product name, SKU, or barcode..."
             className="w-full h-11 pl-11 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           {searchQuery && (
@@ -411,7 +593,7 @@ export default function PosTerminal() {
         </div>
 
         {/* Catalog Grid */}
-        <div className="flex-1 overflow-y-auto pr-1">
+        <div className="flex-1 overflow-y-auto pr-1 pb-16 md:pb-0">
           {loading ? (
             <div className="h-64 flex items-center justify-center">
               <svg className="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
@@ -420,7 +602,7 @@ export default function PosTerminal() {
               </svg>
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
               {filteredProducts.map((p) => {
                 const isOutOfStock = p.stock <= 0;
                 return (
@@ -434,7 +616,7 @@ export default function PosTerminal() {
                     {/* Item category chip label */}
                     <div className="absolute top-2.5 right-2.5">
                       <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                        className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-white"
                         style={{ backgroundColor: p.category_id?.color || '#4F46E5' }}
                       >
                         {p.category_id?.name || 'Item'}
@@ -443,7 +625,7 @@ export default function PosTerminal() {
 
                     {/* Stock level preview */}
                     <div className="absolute top-2.5 left-2.5">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                      <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
                         p.stock <= p.stock_threshold
                           ? 'bg-rose-50 text-rose-600 border border-rose-100'
                           : 'bg-slate-50 text-slate-500 border border-slate-100'
@@ -453,18 +635,18 @@ export default function PosTerminal() {
                     </div>
 
                     <div className="pt-8">
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
                         {p.name}
                       </h4>
                       <p className="text-[10px] text-slate-400 font-semibold mt-0.5 truncate">{p.sku}</p>
                     </div>
 
                     <div className="mt-4 flex items-center justify-between">
-                      <span className="text-base font-extrabold text-slate-900 dark:text-slate-50">
+                      <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-50">
                         ₹{p.base_price.toFixed(2)}
                       </span>
                       {isOutOfStock && (
-                        <span className="text-xs font-black text-rose-600">OUT OF STOCK</span>
+                        <span className="text-[10px] font-black text-rose-605">OUT</span>
                       )}
                     </div>
                   </div>
@@ -480,177 +662,57 @@ export default function PosTerminal() {
         </div>
       </div>
 
-      {/* Right Panel: Shopping Cart */}
-      <div className="w-96 bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 flex flex-col h-full z-10">
-        {/* Cart Header */}
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-50 flex items-center">
-            Shopping Basket
-            <span className="ml-2 w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 flex items-center justify-center text-[10px] font-black">
-              {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
-            </span>
-          </h3>
-          <div className="space-x-1.5">
-            {heldOrders.length > 0 && (
-              <Button
-                variant="secondary"
-                onClick={() => setIsRecallModalOpen(true)}
-                className="!h-8 !px-2.5 rounded-lg text-xs"
-              >
-                Recall ({heldOrders.length})
-              </Button>
-            )}
-            <button
-              onClick={clearCart}
-              className="text-xs font-semibold text-slate-450 hover:text-rose-600 transition-colors p-1"
-            >
-              Clear
-            </button>
-          </div>
+      {/* Right Panel: Desktop Shopping Cart (hidden on mobile) */}
+      {!isMobile && (
+        <div className="w-[340px] lg:w-96 bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 flex flex-col h-full z-10 shrink-0">
+          {cartContent}
         </div>
+      )}
 
-        {/* Customer Attachment Row */}
-        <div className="p-3 bg-slate-50/50 dark:bg-slate-900/20 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
-          {customer ? (
-            <div className="flex items-center justify-between w-full">
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{customer.name}</p>
-                <p className="text-[10px] text-slate-400 font-semibold">{customer.phone} • pts: {customer.loyalty_points}</p>
-              </div>
-              <button
-                onClick={() => setCustomer(null)}
-                className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => {
-                setCustomerSearch('');
-                setIsCustomerModalOpen(true);
-              }}
-              className="w-full flex items-center justify-center py-2 border border-dashed border-slate-200 dark:border-slate-800 text-slate-450 hover:text-indigo-650 dark:hover:text-indigo-400 rounded-xl hover:bg-slate-100/50 text-xs font-bold cursor-pointer"
-            >
-              <UserPlus className="w-4 h-4 mr-2" /> Add Customer to Sale
-            </button>
+      {/* Mobile Bottom Sheet Cart */}
+      {isMobile && (
+        <>
+          {/* Backdrop */}
+          {cartSheetOpen && (
+            <div
+              onClick={() => setCartSheetOpen(false)}
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 transition-opacity duration-300"
+            />
           )}
-        </div>
-
-        {/* Cart items list */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {cartItems.length > 0 ? (
-            cartItems.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-start justify-between bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100/60 dark:border-slate-900"
-              >
-                <div className="min-w-0 flex-1 pr-3">
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250 truncate">
-                    {item.product.name}
-                  </p>
-                  {item.variantName && (
-                    <p className="text-[10px] text-indigo-500 font-bold">{item.variantName}</p>
-                  )}
-                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100 mt-1">
-                    ₹{(item.price * item.quantity).toFixed(2)}
-                  </p>
-                </div>
-
-                {/* Qty adjustments */}
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => updateQuantity(item.product._id, item.quantity - 1, item.variantName)}
-                    className="p-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-50 cursor-pointer"
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <span className="text-xs font-black text-slate-800 dark:text-slate-200 w-6 text-center">
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() => updateQuantity(item.product._id, item.quantity + 1, item.variantName)}
-                    className="p-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-50 cursor-pointer"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={() => removeFromCart(item.product._id, item.variantName)}
-                    className="p-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-650 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6">
-              <FolderHeart className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-3" />
-              <p className="text-xs text-slate-405 font-bold">Shopping cart is empty</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Click products on the left to add items</p>
+          {/* Sheet container */}
+          <div className={`fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-2xl shadow-2xl transition-transform duration-300 flex flex-col max-h-[85vh] ${
+            cartSheetOpen ? 'translate-y-0' : 'translate-y-full'
+          }`}>
+            {/* Drag handle */}
+            <div
+              onClick={() => setCartSheetOpen(false)}
+              className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mt-3 mb-2 cursor-pointer shrink-0"
+            />
+            {/* Cart Content wrapper */}
+            <div className="flex-1 overflow-hidden">
+              {cartContent}
             </div>
-          )}
-        </div>
-
-        {/* Cart Totals Summary */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-2 shrink-0">
-          <div className="flex justify-between text-xs text-slate-500 font-semibold">
-            <span>Subtotal</span>
-            <span>₹{totals.subtotal.toFixed(2)}</span>
           </div>
+        </>
+      )}
 
-          {/* Discount Trigger */}
-          <div className="flex justify-between text-xs text-slate-500 font-semibold items-center">
-            <button
-              onClick={() => setIsDiscountModalOpen(true)}
-              className="flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold cursor-pointer"
-            >
-              <Percent className="w-3.5 h-3.5 mr-1" />
-              {orderDiscount ? `Discount (${orderDiscount.name})` : 'Apply Discount'}
-            </button>
-            {totals.discountAmount > 0 ? (
-              <span className="text-rose-500 font-bold">-₹{totals.discountAmount.toFixed(2)}</span>
-            ) : (
-              <span>₹0.00</span>
-            )}
-          </div>
-
-          {/* Taxes summary */}
-          {totals.taxes.map((tax, idx) => (
-            <div key={idx} className="flex justify-between text-xs text-slate-500 font-semibold">
-              <span>{tax.name}</span>
-              <span>₹{tax.amount.toFixed(2)}</span>
+      {/* Floating cart button for mobile */}
+      {isMobile && cartItems.length > 0 && !cartSheetOpen && (
+        <div className="fixed bottom-4 left-4 right-4 z-30 pb-[env(safe-area-inset-bottom)]">
+          <button
+            onClick={() => setCartSheetOpen(true)}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12 rounded-xl shadow-lg flex items-center justify-between px-4 transition-all duration-200"
+          >
+            <div className="flex items-center space-x-2">
+              <span className="w-6 h-6 rounded-full bg-indigo-500/50 flex items-center justify-center text-xs font-black">
+                {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+              </span>
+              <span className="text-sm">View Cart</span>
             </div>
-          ))}
-
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end">
-            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Total Payable</span>
-            <span className="text-xl font-black text-slate-900 dark:text-slate-50">
-              ₹{totals.total.toFixed(2)}
-            </span>
-          </div>
-
-          {/* Action Row */}
-          <div className="flex space-x-2 pt-2">
-            <Button
-              variant="secondary"
-              onClick={holdOrder}
-              disabled={cartItems.length === 0}
-              className="flex-1 rounded-xl !h-10 text-xs"
-            >
-              Hold Sale
-            </Button>
-            <Button
-              variant="success"
-              onClick={openCheckout}
-              disabled={cartItems.length === 0 || !isShiftValid}
-              className="flex-2 rounded-xl !h-10 text-xs font-bold"
-            >
-              Complete Sale
-            </Button>
-          </div>
+            <span className="text-sm font-black">₹{totals.total.toFixed(2)}</span>
+          </button>
         </div>
-      </div>
+      )}
 
       {/* Select Product Variant Modal */}
       {isVariantModalOpen && activeProductForVariants && (

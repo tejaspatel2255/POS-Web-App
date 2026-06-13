@@ -10,6 +10,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from 'lucide-react';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useAuthStore } from '../store/useAuthStore';
 import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
@@ -22,6 +23,7 @@ import FormField from '../components/ui/FormField';
 
 export default function OrdersLog() {
   const { user } = useAuthStore();
+  const isMobile = useMediaQuery('(max-width: 767px)');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -186,16 +188,14 @@ export default function OrdersLog() {
         <Button variant="secondary" icon={RefreshCw} onClick={fetchOrders}>
           Refresh
         </Button>
-      </PageHeader>
-
-      {/* Filter and Search controls */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4">
+      </PageHeader>      {/* Filter and Search controls */}
+      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4">
         {/* Status filters */}
-        <div className="space-y-2">
+        <div className="space-y-2 w-full md:w-auto">
           <label className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block">
             Filter by Status
           </label>
-          <div className="flex items-center space-x-1.5 overflow-x-auto pb-1">
+          <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-hide">
             {['all', 'completed', 'refunded', 'voided'].map((status) => (
               <button
                 key={status}
@@ -203,7 +203,7 @@ export default function OrdersLog() {
                 className={`px-3.5 h-9 rounded-xl text-xs font-bold capitalize transition-all whitespace-nowrap cursor-pointer ${
                   statusFilter === status
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-650/10'
-                    : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-350 border border-slate-100 dark:border-slate-800'
+                    : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-350 border border-slate-105 dark:border-slate-800'
                 }`}
               >
                 {status}
@@ -213,58 +213,150 @@ export default function OrdersLog() {
         </div>
 
         {/* Date Filter */}
-        <form onSubmit={handleApplyDateFilter} className="flex flex-wrap items-end gap-3">
-          <FormField label="Start Date" className="w-40">
+        <form onSubmit={handleApplyDateFilter} className="flex flex-wrap items-end gap-3 w-full md:w-auto">
+          <FormField label="Start Date" className="w-full sm:w-40">
             <div className="relative">
               <Calendar className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </FormField>
 
-          <FormField label="End Date" className="w-40">
+          <FormField label="End Date" className="w-full sm:w-40">
             <div className="relative">
               <Calendar className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </FormField>
 
-          <Button type="submit" variant="primary" className="!h-10 rounded-xl text-xs">
-            Apply Date Range
-          </Button>
-
-          <Button
-            variant="secondary"
-            onClick={handleClearFilters}
-            className="!h-10 rounded-xl text-xs"
-          >
-            Clear Filters
-          </Button>
+          <div className="flex space-x-2 w-full sm:w-auto">
+            <Button type="submit" variant="primary" className="flex-1 sm:flex-none !h-10 rounded-xl text-xs">
+              Apply
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleClearFilters}
+              className="flex-1 sm:flex-none !h-10 rounded-xl text-xs"
+            >
+              Clear
+            </Button>
+          </div>
         </form>
       </div>
 
-      {/* Orders List Table */}
-      <DataTable
-        columns={columns}
-        data={orders}
-        isLoading={loading}
-        idKey="_id"
-        emptyState={
+      {/* Orders List Table / Cards */}
+      {isMobile ? (
+        loading ? (
+          <div className="flex justify-center py-12">
+            <svg className="animate-spin h-8 w-8 text-indigo-650" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          </div>
+        ) : orders.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {orders.map((order) => {
+              const orderIdTail = order._id.substring(order._id.length - 8).toUpperCase();
+              return (
+                <div
+                  key={order._id}
+                  className="p-4 bg-white dark:bg-slate-900 border border-slate-105 dark:border-slate-800 rounded-2xl shadow-sm space-y-4"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                        #{orderIdTail}
+                      </h4>
+                      <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                        {new Date(order.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <StatusBadge status={order.status} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs border-t border-slate-100 dark:border-slate-800/80 pt-3">
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Customer</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
+                        {order.customer_id?.name || 'Walk-in'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Cashier</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
+                        {order.cashier_id?.name || 'Unknown'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-3">
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Payments</p>
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {order.payments?.map((p, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 capitalize"
+                          >
+                            {p.method}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Total Paid</p>
+                      <p className="text-sm font-extrabold text-slate-900 dark:text-slate-50 mt-0.5">
+                        ₹{order.total.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-100 dark:border-slate-800/80 pt-3">
+                    <Button
+                      variant="secondary"
+                      icon={Eye}
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setIsDetailsOpen(true);
+                      }}
+                      className="w-full !h-9 text-xs rounded-xl font-bold"
+                    >
+                      View Receipt Details
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
           <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
-            <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <FileText className="w-10 h-10 text-slate-305 mx-auto mb-3" />
             <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">No transactions match the selected criteria</p>
           </div>
-        }
-      />
+        )
+      ) : (
+        <DataTable
+          columns={columns}
+          data={orders}
+          isLoading={loading}
+          idKey="_id"
+          emptyState={
+            <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
+              <FileText className="w-10 h-10 text-slate-305 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">No transactions match the selected criteria</p>
+            </div>
+          }
+        />
+      )}
 
       {/* Details View and Print Receipt Modal */}
       {isDetailsOpen && selectedOrder && (

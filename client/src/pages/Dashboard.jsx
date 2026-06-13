@@ -9,6 +9,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import apiClient from '../api/apiClient';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
@@ -17,6 +18,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -50,7 +52,7 @@ export default function Dashboard() {
   const recentOrders = orders.slice(0, 5);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <PageHeader title="Overview Dashboard">
         <Button variant="secondary" icon={RefreshCw} onClick={fetchDashboardData}>
           Reload
@@ -58,56 +60,56 @@ export default function Dashboard() {
       </PageHeader>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {/* Total Sales Card */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
               ₹{(metrics.totalRevenue || 0).toFixed(2)}
             </h3>
           </div>
-          <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 rounded-xl">
-            <IndianRupee className="w-6 h-6" />
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 rounded-xl">
+            <IndianRupee className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
         {/* Orders Count Card */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Orders Count</p>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Orders Count</p>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
               {metrics.orderCount || 0}
             </h3>
           </div>
-          <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 text-amber-650 dark:text-amber-400 rounded-xl">
-            <ShoppingCart className="w-6 h-6" />
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-650 dark:text-amber-400 rounded-xl">
+            <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
         {/* Avg Order Value Card */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Avg Order Value</p>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Avg Order Value</p>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
               ₹{(metrics.averageOrderValue || 0).toFixed(2)}
             </h3>
           </div>
-          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-650 dark:text-emerald-400 rounded-xl">
-            <TrendingUp className="w-6 h-6" />
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-650 dark:text-emerald-400 rounded-xl">
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
         {/* Gross Profit Card */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Profit</p>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Profit</p>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
               ₹{(metrics.grossProfit || 0).toFixed(2)}
             </h3>
           </div>
-          <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 text-purple-650 dark:text-purple-400 rounded-xl">
-            <Package className="w-6 h-6" />
+          <div className="p-3 bg-purple-50 dark:bg-purple-950/40 text-purple-650 dark:text-purple-400 rounded-xl">
+            <Package className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
       </div>
@@ -115,24 +117,25 @@ export default function Dashboard() {
       {/* Main Charts & Breakdown row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sales Chart Card */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-2 space-y-4">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-base font-bold text-slate-900 dark:text-slate-50">Sales Performance</h4>
+            <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-50">Sales Performance</h4>
             <span className="text-xs font-semibold text-slate-400">Past 30 Days</span>
           </div>
-          <div className="h-72 w-full">
+          <div style={{ height: isMobile ? 200 : 300 }} className="w-full">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="date" stroke="#94A3B8" fontSize={12} tickLine={false} />
-                  <YAxis stroke="#94A3B8" fontSize={12} tickLine={false} />
+                  <XAxis dataKey="date" stroke="#94A3B8" fontSize={10} tickLine={false} />
+                  <YAxis stroke="#94A3B8" fontSize={10} tickLine={false} />
                   <Tooltip
                     contentStyle={{
                       background: '#0F172A',
                       border: 'none',
                       borderRadius: '8px',
                       color: '#fff',
+                      fontSize: '11px',
                     }}
                   />
                   <Line type="monotone" dataKey="sales" stroke="#4F46E5" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />

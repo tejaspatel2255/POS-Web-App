@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/useAuthStore';
+import { useLayoutStore } from './store/useLayoutStore';
 import { supabase } from './utils/supabaseClient';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -19,6 +20,12 @@ import Topbar from './components/layout/Topbar';
 // Protected Route Wrapper Layout Component
 function MainLayout() {
   const { user } = useAuthStore();
+  const { sidebarOpen, setSidebarOpen } = useLayoutStore();
+  const location = useLocation();
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -26,6 +33,13 @@ function MainLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+      {/* Backdrop overlay for mobile drawer */}
+      {sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-30 lg:hidden cursor-pointer"
+        />
+      )}
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar />

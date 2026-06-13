@@ -11,6 +11,7 @@ import {
   Info,
   X,
 } from 'lucide-react';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
 import PageHeader from '../components/ui/PageHeader';
@@ -22,6 +23,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 
 export default function Products() {
   const [products, setProducts] = useState([]);
+  const isMobile = useMediaQuery('(max-width: 767px)');
   const [categories, setCategories] = useState([]);
   const [taxRates, setTaxRates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -251,6 +253,14 @@ export default function Products() {
     return matchesCategory && matchesSearch;
   });
 
+  const toggleSelectProduct = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((x) => x !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
   const columns = [
     {
       header: 'Product Name',
@@ -339,13 +349,11 @@ export default function Products() {
             Add Product
           </Button>
         </div>
-      </PageHeader>
-
-      {/* Filters & Bulk Operations bar */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      </PageHeader>      {/* Filters & Bulk Operations bar */}
+      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Search & Category Filter */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative w-64">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
             <input
               type="text"
@@ -359,7 +367,7 @@ export default function Products() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-700 dark:text-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="h-10 px-3 w-full sm:w-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-700 dark:text-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">All Categories</option>
             {categories.map((c) => (
@@ -372,9 +380,9 @@ export default function Products() {
 
         {/* Selected rows action */}
         {selectedIds.length > 0 && (
-          <div className="flex items-center space-x-3 bg-rose-50/50 dark:bg-rose-950/20 px-4 py-2 rounded-xl border border-rose-100 dark:border-rose-900/40">
+          <div className="flex items-center justify-between sm:justify-start space-x-3 bg-rose-50/50 dark:bg-rose-950/20 px-4 py-2 rounded-xl border border-rose-100 dark:border-rose-900/40 w-full sm:w-auto">
             <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
-              {selectedIds.length} Products Selected
+              {selectedIds.length} Selected
             </span>
             <Button
               variant="danger"
@@ -388,22 +396,116 @@ export default function Products() {
         )}
       </div>
 
-      {/* Grid List Table */}
-      <DataTable
-        columns={columns}
-        data={filteredProducts}
-        isLoading={loading}
-        idKey="_id"
-        selectable
-        selectedIds={selectedIds}
-        onSelectionChange={setSelectedIds}
-        emptyState={
+      {/* Grid List Table / Cards */}
+      {isMobile ? (
+        loading ? (
+          <div className="flex justify-center py-12">
+            <svg className="animate-spin h-8 w-8 text-indigo-650" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          </div>
+        ) : filteredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {filteredProducts.map((p) => {
+              const isLowStock = p.stock <= p.stock_threshold;
+              const isSelected = selectedIds.includes(p._id);
+              return (
+                <div
+                  key={p._id}
+                  className={`p-4 bg-white dark:bg-slate-900 border rounded-2xl shadow-sm transition-all flex flex-col justify-between space-y-4 ${
+                    isSelected ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-slate-100 dark:border-slate-800'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectProduct(p._id)}
+                        className="mt-1 rounded border-slate-350 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer"
+                      />
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">
+                          {p.name}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 font-semibold mt-0.5">{p.sku}</p>
+                        {p.variants?.length > 0 && (
+                          <span className="inline-block mt-1 text-[9px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 px-1.5 py-0.5 rounded font-bold">
+                            {p.variants.length} Variants
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <span
+                      className="text-[10px] font-black px-2 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: p.category_id?.color || '#94A3B8' }}
+                    >
+                      {p.category_id?.name || 'Uncategorized'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-3">
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Stock Level</p>
+                      <p className={`text-xs font-black mt-0.5 ${isLowStock ? 'text-rose-500' : 'text-slate-700 dark:text-slate-300'}`}>
+                        {p.stock} / min: {p.stock_threshold}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Retail Price</p>
+                      <p className="text-sm font-extrabold text-slate-900 dark:text-slate-50 mt-0.5">
+                        ₹{p.base_price.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions footer */}
+                  <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-3">
+                    <StatusBadge status={p.status} />
+                    <div className="flex space-x-1.5">
+                      <button
+                        onClick={() => openEditForm(p)}
+                        className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-100 cursor-pointer flex items-center"
+                      >
+                        <Edit className="w-3.5 h-3.5 mr-1" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(p._id)}
+                        className="px-3 py-1.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-xs font-bold text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-100 cursor-pointer flex items-center"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
           <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
-            <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <ShoppingBag className="w-10 h-10 text-slate-305 mx-auto mb-3" />
             <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">No products inside catalog</p>
           </div>
-        }
-      />
+        )
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filteredProducts}
+          isLoading={loading}
+          idKey="_id"
+          selectable
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          emptyState={
+            <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
+              <ShoppingBag className="w-10 h-10 text-slate-305 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">No products inside catalog</p>
+            </div>
+          }
+        />
+      )}
 
       {/* Product Add/Edit Form Wizard Modal */}
       {isFormOpen && (
@@ -563,7 +665,7 @@ export default function Products() {
               </div>
 
               {/* Add Variant Form fields */}
-              <div className="grid grid-cols-3 gap-3 items-end bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                 <FormField label="Variant Name">
                   <input
                     type="text"
