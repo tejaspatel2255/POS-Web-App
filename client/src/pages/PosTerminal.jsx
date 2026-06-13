@@ -84,6 +84,8 @@ export default function PosTerminal() {
 
   const [isRecallModalOpen, setIsRecallModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customDiscountValue, setCustomDiscountValue] = useState('');
+  const [customDiscountType, setCustomDiscountType] = useState('fixed');
 
   // Responsive UI States
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -143,6 +145,18 @@ export default function PosTerminal() {
       window.removeEventListener('offline-sync-completed', handleSyncComplete);
     };
   }, [user, resolvedOutletId]);
+
+  useEffect(() => {
+    if (isDiscountModalOpen) {
+      if (orderDiscount && orderDiscount._id === 'custom') {
+        setCustomDiscountValue(String(orderDiscount.value || orderDiscount.default_value || ''));
+        setCustomDiscountType(orderDiscount.type || 'fixed');
+      } else {
+        setCustomDiscountValue('');
+        setCustomDiscountType('fixed');
+      }
+    }
+  }, [isDiscountModalOpen, orderDiscount]);
 
   // Filter products based on search and category
   // NOTE: category_id is a Supabase nested join object — it has `.id`, not `._id`
@@ -492,7 +506,7 @@ export default function PosTerminal() {
             onClick={() => setIsDiscountModalOpen(true)}
             className="flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold cursor-pointer"
           >
-            <Percent className="w-3.5 h-3.5 mr-1" />
+            <span className="font-extrabold mr-1 text-sm leading-none">₹</span>
             {orderDiscount ? `Discount (${orderDiscount.name})` : 'Apply Discount'}
           </button>
           {totals.discountAmount > 0 ? (
@@ -980,6 +994,60 @@ export default function PosTerminal() {
           size="sm"
         >
           <div className="space-y-3">
+            {/* Custom Discount Input */}
+            <div className="p-3 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl space-y-2.5">
+              <h5 className="text-xs font-bold text-slate-700 dark:text-slate-350">Custom Discount</h5>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                    {customDiscountType === 'fixed' ? '₹' : '%'}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={customDiscountValue}
+                    onChange={(e) => setCustomDiscountValue(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <select
+                  value={customDiscountType}
+                  onChange={(e) => setCustomDiscountType(e.target.value)}
+                  className="px-2.5 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="fixed">₹ (Rs)</option>
+                  <option value="percentage">% (Percentage)</option>
+                </select>
+                <Button
+                  onClick={() => {
+                    const val = Number(customDiscountValue);
+                    if (isNaN(val) || val <= 0) {
+                      toast.error('Please enter a valid discount value');
+                      return;
+                    }
+                    if (customDiscountType === 'percentage' && val > 100) {
+                      toast.error('Discount percentage cannot exceed 100%');
+                      return;
+                    }
+                    setDiscount({
+                      id: 'custom',
+                      _id: 'custom',
+                      name: `Custom (${customDiscountType === 'fixed' ? '₹' : '%'}${val})`,
+                      type: customDiscountType,
+                      default_value: val,
+                      value: val,
+                    });
+                    setIsDiscountModalOpen(false);
+                  }}
+                  variant="primary"
+                  className="px-3.5 py-2 font-bold text-xs"
+                >
+                  Apply
+                </Button>
+              </div>
+            </div>
+
             {/* Clear option */}
             <button
               onClick={() => {
