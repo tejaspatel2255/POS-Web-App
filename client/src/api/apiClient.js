@@ -218,11 +218,32 @@ const apiClient = {
 
       // 12. ORDERS
       if (url.startsWith('/api/orders')) {
-        const { data, error } = await supabase
+        // Parse query params from the URL string
+        const urlObj = new URL(url, 'http://localhost');
+        const statusParam = urlObj.searchParams.get('status') || 'all';
+        const startDateParam = urlObj.searchParams.get('startDate') || '';
+        const endDateParam = urlObj.searchParams.get('endDate') || '';
+
+        let query = supabase
           .from('orders')
           .select('*, customer_id(*), cashier_id(*)')
           .eq('outlet_id', outletId)
           .order('created_at', { ascending: false });
+
+        // Status filter
+        if (statusParam && statusParam !== 'all') {
+          query = query.eq('status', statusParam);
+        }
+
+        // Date range filters — endDate gets end-of-day so it's inclusive
+        if (startDateParam) {
+          query = query.gte('created_at', `${startDateParam}T00:00:00.000Z`);
+        }
+        if (endDateParam) {
+          query = query.lte('created_at', `${endDateParam}T23:59:59.999Z`);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
 
         const mapped = data.map(o => ({
@@ -238,6 +259,7 @@ const apiClient = {
         }));
         return { data: mapped };
       }
+
 
       // 13. SHIFTS Log
       if (url.startsWith('/api/shifts')) {

@@ -48,6 +48,9 @@ export default function Settings() {
   const [modalType, setModalType] = useState(''); // 'outlet', 'user', 'tax', 'discount', 'payment'
   const [editingItem, setEditingItem] = useState(null);
 
+  // Inline delete confirmation (replaces window.confirm — blocked in mobile PWA)
+  const [confirmDelete, setConfirmDelete] = useState(null); // { type, id, name }
+
   // Form inputs
   const [formName, setFormName] = useState('');
   const [formField1, setFormField1] = useState(''); // address (outlet), email (user), rate (tax), value (discount), type (payment)
@@ -208,9 +211,6 @@ export default function Settings() {
   };
 
   const deleteItem = async (type, id) => {
-    const confirm = window.confirm('Are you sure you want to delete this setting?');
-    if (!confirm) return;
-
     try {
       if (type === 'outlet') await apiClient.delete(`/api/outlets/${id}`);
       else if (type === 'user') await apiClient.delete(`/api/users/${id}`);
@@ -218,10 +218,11 @@ export default function Settings() {
       else if (type === 'discount') await apiClient.delete(`/api/discount-types/${id}`);
       else if (type === 'payment') await apiClient.delete(`/api/payment-methods/${id}`);
 
-      toast.success('Setting item deleted');
+      toast.success('Item deleted successfully');
+      setConfirmDelete(null);
       loadSettingsData();
     } catch (err) {
-      toast.error('Error deleting settings item');
+      toast.error(err.message || 'Error deleting item');
     }
   };
 
@@ -391,10 +392,10 @@ export default function Settings() {
                   key: 'actions',
                   render: (row) => (
                     <div className="flex space-x-2">
-                      <button onClick={() => openModal('outlet', row)} className="p-2 text-slate-500 hover:text-indigo-650 cursor-pointer">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); openModal('outlet', row); }} className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-colors cursor-pointer" title="Edit">
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button onClick={() => deleteItem('outlet', row._id)} className="p-2 text-slate-500 hover:text-rose-650 cursor-pointer">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setConfirmDelete({ type: 'outlet', id: row._id, name: row.name }); }} className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -432,10 +433,10 @@ export default function Settings() {
                   key: 'actions',
                   render: (row) => (
                     <div className="flex space-x-2">
-                      <button onClick={() => openModal('user', row)} className="p-2 text-slate-500 hover:text-indigo-655 cursor-pointer">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); openModal('user', row); }} className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-colors cursor-pointer" title="Edit">
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button onClick={() => deleteItem('user', row._id)} className="p-2 text-slate-500 hover:text-rose-650 cursor-pointer">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setConfirmDelete({ type: 'user', id: row._id, name: row.name }); }} className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -464,16 +465,16 @@ export default function Settings() {
                 {
                   header: 'Actions',
                   key: 'actions',
-                  render: (row) => (
+                  render: (row) => canEdit ? (
                     <div className="flex space-x-2">
-                      <button onClick={() => openModal('tax', row)} className="p-2 text-slate-500 hover:text-indigo-650 cursor-pointer">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); openModal('tax', row); }} className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-colors cursor-pointer" title="Edit">
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button onClick={() => deleteItem('tax', row._id)} className="p-2 text-slate-500 hover:text-rose-650 cursor-pointer">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setConfirmDelete({ type: 'tax', id: row._id, name: row.name }); }} className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                  ),
+                  ) : null,
                 },
               ]}
               data={taxRates}
@@ -507,16 +508,16 @@ export default function Settings() {
                 {
                   header: 'Actions',
                   key: 'actions',
-                  render: (row) => (
+                  render: (row) => canEdit ? (
                     <div className="flex space-x-2">
-                      <button onClick={() => openModal('discount', row)} className="p-2 text-slate-500 hover:text-indigo-650 cursor-pointer">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); openModal('discount', row); }} className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-colors cursor-pointer" title="Edit">
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button onClick={() => deleteItem('discount', row._id)} className="p-2 text-slate-500 hover:text-rose-650 cursor-pointer">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setConfirmDelete({ type: 'discount', id: row._id, name: row.name }); }} className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                  ),
+                  ) : null,
                 },
               ]}
               data={discountTypes}
@@ -541,16 +542,26 @@ export default function Settings() {
                 {
                   header: 'Actions',
                   key: 'actions',
-                  render: (row) => (
+                  render: (row) => canEdit ? (
                     <div className="flex space-x-2">
-                      <button onClick={() => openModal('payment', row)} className="p-2 text-slate-500 hover:text-indigo-650 cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); openModal('payment', row); }}
+                        className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-colors cursor-pointer"
+                        title="Edit"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button onClick={() => deleteItem('payment', row._id)} className="p-2 text-slate-500 hover:text-rose-650 cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setConfirmDelete({ type: 'payment', id: row._id, name: row.name }); }}
+                        className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer"
+                        title="Delete"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                  ),
+                  ) : null,
                 },
               ]}
               data={paymentMethods}
@@ -590,10 +601,41 @@ export default function Settings() {
         ) : null}
       </div>
 
-      {/* Edit settings modals dialogs */}
+      {/* Inline Delete Confirmation Modal */}
+      {confirmDelete && (
+        <Modal
+          title="Confirm Delete"
+          onClose={() => setConfirmDelete(null)}
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Are you sure you want to delete <span className="font-bold text-slate-900 dark:text-slate-100">{confirmDelete.name}</span>? This cannot be undone.
+            </p>
+            <div className="flex space-x-3">
+              <Button variant="secondary" onClick={() => setConfirmDelete(null)} className="flex-1">
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => deleteItem(confirmDelete.type, confirmDelete.id)}
+                className="flex-1"
+              >
+                Yes, Delete
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit / Add settings modal */}
       {isModalOpen && (
         <Modal
-          title={editingItem ? `Edit ${modalType.toUpperCase()}` : `Add New ${modalType.toUpperCase()}`}
+          title={
+            editingItem
+              ? `Edit ${modalType.charAt(0).toUpperCase() + modalType.slice(1)}`
+              : `Add New ${modalType.charAt(0).toUpperCase() + modalType.slice(1)}`
+          }
           onClose={() => setIsModalOpen(false)}
           size="sm"
         >

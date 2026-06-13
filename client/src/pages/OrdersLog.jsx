@@ -62,6 +62,9 @@ export default function OrdersLog() {
     }
   };
 
+  // Today's date string in YYYY-MM-DD format (max for both date pickers)
+  const todayStr = new Date().toISOString().split('T')[0];
+
   useEffect(() => {
     if (user) {
       fetchOrders();
@@ -70,6 +73,20 @@ export default function OrdersLog() {
 
   const handleApplyDateFilter = (e) => {
     e.preventDefault();
+    // Constraint: start must not be after end
+    if (startDate && endDate && startDate > endDate) {
+      toast.error('Start Date cannot be after End Date');
+      return;
+    }
+    // Constraint: dates must not be in the future
+    if (startDate && startDate > todayStr) {
+      toast.error('Start Date cannot be in the future');
+      return;
+    }
+    if (endDate && endDate > todayStr) {
+      toast.error('End Date cannot be in the future');
+      return;
+    }
     fetchOrders();
   };
 
@@ -77,6 +94,8 @@ export default function OrdersLog() {
     setStartDate('');
     setEndDate('');
     setStatusFilter('all');
+    // Re-fetch immediately after clearing
+    setTimeout(() => fetchOrders(), 0);
   };
 
   // Process Refund
@@ -185,10 +204,9 @@ export default function OrdersLog() {
   return (
     <div className="space-y-6">
       <PageHeader title="Orders History Log">
-        <Button variant="secondary" icon={RefreshCw} onClick={fetchOrders}>
-          Refresh
-        </Button>
-      </PageHeader>      {/* Filter and Search controls */}
+      </PageHeader>
+
+      {/* Filter and Search controls */}
       <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4">
         {/* Status filters */}
         <div className="space-y-2 w-full md:w-auto">
@@ -206,40 +224,84 @@ export default function OrdersLog() {
                     : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-350 border border-slate-105 dark:border-slate-800'
                 }`}
               >
-                {status}
+                {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Date Filter */}
+        {/* Date Range Filter */}
         <form onSubmit={handleApplyDateFilter} className="flex flex-wrap items-end gap-3 w-full md:w-auto">
           <FormField label="Start Date" className="w-full sm:w-40">
             <div className="relative">
-              <Calendar className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+              <Calendar className="absolute left-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                max={endDate || todayStr}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  // Don't allow future dates
+                  if (val > todayStr) return;
+                  setStartDate(val);
+                  // Auto-clear endDate if it's now before the new startDate
+                  if (endDate && val > endDate) setEndDate('');
+                }}
+                className={`w-full h-10 pl-9 pr-3 rounded-xl border bg-transparent text-slate-900 dark:text-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  startDate && endDate && startDate > endDate
+                    ? 'border-rose-400 ring-1 ring-rose-300'
+                    : 'border-slate-200 dark:border-slate-800'
+                }`}
               />
             </div>
           </FormField>
 
           <FormField label="End Date" className="w-full sm:w-40">
             <div className="relative">
-              <Calendar className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+              <Calendar className="absolute left-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                min={startDate || undefined}
+                max={todayStr}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  // Don't allow future dates
+                  if (val > todayStr) return;
+                  // Don't allow end before start
+                  if (startDate && val < startDate) {
+                    toast.error('End Date cannot be before Start Date');
+                    return;
+                  }
+                  setEndDate(val);
+                }}
+                className={`w-full h-10 pl-9 pr-3 rounded-xl border bg-transparent text-slate-900 dark:text-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  startDate && endDate && endDate < startDate
+                    ? 'border-rose-400 ring-1 ring-rose-300'
+                    : 'border-slate-200 dark:border-slate-800'
+                }`}
               />
             </div>
           </FormField>
 
+          {/* Active filter summary badge */}
+          {(startDate || endDate) && (
+            <div className="flex items-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 px-2.5 py-1.5 rounded-lg h-10 whitespace-nowrap">
+              {startDate && endDate
+                ? `${startDate} → ${endDate}`
+                : startDate
+                ? `From ${startDate}`
+                : `Until ${endDate}`}
+            </div>
+          )}
+
           <div className="flex space-x-2 w-full sm:w-auto">
-            <Button type="submit" variant="primary" className="flex-1 sm:flex-none !h-10 rounded-xl text-xs">
+            <Button
+              type="submit"
+              variant="primary"
+              className="flex-1 sm:flex-none !h-10 rounded-xl text-xs font-bold"
+              disabled={!!(startDate && endDate && startDate > endDate)}
+            >
               Apply
             </Button>
             <Button
