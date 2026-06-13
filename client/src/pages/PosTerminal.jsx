@@ -83,6 +83,7 @@ export default function PosTerminal() {
   const [lastCreatedOrder, setLastCreatedOrder] = useState(null);
 
   const [isRecallModalOpen, setIsRecallModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Responsive UI States
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -264,11 +265,12 @@ export default function PosTerminal() {
   const cashChange = hasCash ? Math.max(0, Number(cashTendered) - cashPaymentAmount) : 0;
 
   const handleCompleteSale = async () => {
-    if (!isReadyToConfirm) {
+    if (!isReadyToConfirm || isSubmitting) {
       toast.error('Payment configuration is invalid or incomplete');
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const orderItems = cartItems.map((item) => ({
         product_id: item.product._id,
@@ -358,6 +360,8 @@ export default function PosTerminal() {
 
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Error processing transaction');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1210,10 +1214,20 @@ export default function PosTerminal() {
                 <Button
                   variant="primary"
                   onClick={handleCompleteSale}
-                  disabled={!isReadyToConfirm}
+                  disabled={!isReadyToConfirm || isSubmitting}
                   className="w-full sm:flex-1 py-3 sm:py-2 text-base sm:text-sm font-bold"
                 >
-                  Confirm Payment
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    'Confirm Payment'
+                  )}
                 </Button>
               </div>
             </div>
