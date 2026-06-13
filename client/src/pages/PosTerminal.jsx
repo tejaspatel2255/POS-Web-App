@@ -373,7 +373,7 @@ export default function PosTerminal() {
           )}
           <button
             onClick={clearCart}
-            className="text-xs font-semibold text-slate-450 hover:text-rose-600 transition-colors p-1"
+            className="text-xs font-semibold text-slate-400 hover:text-rose-600 transition-colors p-1"
           >
             Clear
           </button>
@@ -527,9 +527,9 @@ export default function PosTerminal() {
     </div>
   );
 
-  // Render POS
+   // Render POS
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-56px)] lg:h-[calc(100vh-64px)] overflow-hidden bg-slate-50 dark:bg-slate-955 relative">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-56px)] lg:h-[calc(100vh-64px)] overflow-hidden bg-slate-50 dark:bg-slate-950 relative">
       
       {/* Shift Block Overlay */}
       {!isShiftValid && (
@@ -545,12 +545,12 @@ export default function PosTerminal() {
       )}
 
       {/* Left Panel: Catalog list */}
-      <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden w-full">
+      <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden w-full md:w-[55%] lg:w-[60%]">
         {/* Category filtering chips */}
-        <div className="flex items-center space-x-2 overflow-x-auto pb-4 shrink-0 scrollbar-hide flex-nowrap md:flex-wrap">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide lg:flex-wrap lg:overflow-visible shrink-0">
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`px-4 h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+            className={`px-4 h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 cursor-pointer ${
               selectedCategory === 'all'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-650/10'
                 : 'bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 text-slate-650 dark:text-slate-300'
@@ -562,7 +562,7 @@ export default function PosTerminal() {
             <button
               key={cat._id}
               onClick={() => setSelectedCategory(cat._id)}
-              className={`px-4 h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center shrink-0 cursor-pointer ${
+              className={`px-4 h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center flex-shrink-0 cursor-pointer ${
                 selectedCategory === cat._id
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-650/10'
                   : 'bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 text-slate-650 dark:text-slate-350'
@@ -578,7 +578,7 @@ export default function PosTerminal() {
         </div>
 
         {/* Search tool */}
-        <div className="relative mb-4 sm:mb-6 shrink-0">
+        <div className="relative mb-4 sm:mb-6 shrink-0 mt-2">
           <Search className="absolute left-4 top-3.5 w-4.5 h-4.5 text-slate-400" />
           <input
             type="text"
@@ -607,21 +607,21 @@ export default function PosTerminal() {
               </svg>
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {filteredProducts.map((p) => {
                 const isOutOfStock = p.stock <= 0;
                 return (
                   <div
                     key={p._id}
                     onClick={() => handleProductCardClick(p)}
-                    className={`relative p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[140px] group select-none ${
+                    className={`relative flex flex-col items-center p-3 lg:p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-all min-h-[100px] lg:min-h-[130px] group select-none ${
                       isOutOfStock ? 'opacity-50 pointer-events-none' : ''
                     }`}
                   >
                     {/* Item category chip label */}
-                    <div className="absolute top-2.5 right-2.5">
+                    <div className="absolute top-2 right-2">
                       <span
-                        className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-white"
+                        className="text-[8px] font-bold px-1.5 py-0.5 rounded-full text-white"
                         style={{ backgroundColor: p.category_id?.color || '#4F46E5' }}
                       >
                         {p.category_id?.name || 'Item'}
@@ -629,38 +629,55 @@ export default function PosTerminal() {
                     </div>
 
                     {/* Stock level preview */}
-                    <div className="absolute top-2.5 left-2.5">
-                      <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                    <div className="absolute top-2 left-2">
+                      <span className={`text-[8px] font-bold px-1 py-0.5 rounded ${
                         p.stock <= p.stock_threshold
-                          ? 'bg-rose-50 text-rose-600 border border-rose-100'
-                          : 'bg-slate-50 text-slate-500 border border-slate-100'
+                          ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400'
+                          : 'bg-slate-50 text-slate-500 dark:bg-slate-800/60 dark:text-slate-400'
                       }`}>
-                        Stock: {p.stock}
+                        Qty: {p.stock}
                       </span>
                     </div>
 
-                    <div className="pt-8">
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
-                        {p.name}
-                      </h4>
-                      <p className="text-[10px] text-slate-400 font-semibold mt-0.5 truncate">{p.sku}</p>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-50">
-                        ₹{p.base_price.toFixed(2)}
-                      </span>
-                      {isOutOfStock && (
-                        <span className="text-[10px] font-black text-rose-605">OUT</span>
+                    {/* Product Image */}
+                    <div className="mt-4 shrink-0">
+                      {p.image_url || p.image ? (
+                        <img 
+                          src={p.image_url || p.image} 
+                          alt={p.name} 
+                          className="w-12 h-12 lg:w-16 lg:h-16 object-cover rounded-lg mb-2" 
+                        />
+                      ) : (
+                        <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 shrink-0">
+                          <Folder className="w-6 h-6" />
+                        </div>
                       )}
+                    </div>
+
+                    <div className="text-center w-full flex-1 flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
+                          {p.name}
+                        </h4>
+                        <p className="text-[9px] text-slate-400 font-semibold mt-0.5 truncate">{p.sku}</p>
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between w-full">
+                        <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-50 font-mono">
+                          ₹{p.base_price.toFixed(2)}
+                        </span>
+                        {isOutOfStock && (
+                          <span className="text-[9px] font-black text-rose-600 bg-rose-50 dark:bg-rose-950/20 px-1 py-0.5 rounded">OUT</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl">
-              <Folder className="w-10 h-10 text-slate-350 mb-3" />
+            <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+              <Folder className="w-10 h-10 text-slate-350 dark:text-slate-750 mb-3" />
               <p className="text-sm text-slate-400 font-semibold">No products found matching filters</p>
             </div>
           )}
@@ -669,7 +686,7 @@ export default function PosTerminal() {
 
       {/* Right Panel: Desktop Shopping Cart (hidden on mobile) */}
       {!isMobile && (
-        <div className="w-[340px] lg:w-96 bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 flex flex-col h-full z-10 shrink-0">
+        <div className="md:w-[45%] lg:w-[40%] bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 flex flex-col h-full z-10 shrink-0">
           {cartContent}
         </div>
       )}
@@ -685,13 +702,13 @@ export default function PosTerminal() {
             />
           )}
           {/* Sheet container */}
-          <div className={`fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-2xl shadow-2xl transition-transform duration-300 flex flex-col max-h-[85vh] ${
+          <div className={`fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-2xl shadow-2xl transition-transform duration-300 flex flex-col h-[80vh] overflow-hidden ${
             cartSheetOpen ? 'translate-y-0' : 'translate-y-full'
           }`}>
             {/* Drag handle */}
             <div
               onClick={() => setCartSheetOpen(false)}
-              className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mt-3 mb-2 cursor-pointer shrink-0"
+              className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mt-3 mb-4 cursor-pointer shrink-0"
             />
             {/* Cart Content wrapper */}
             <div className="flex-1 overflow-hidden">
@@ -706,15 +723,11 @@ export default function PosTerminal() {
         <div className="fixed bottom-4 left-4 right-4 z-30 pb-[env(safe-area-inset-bottom)]">
           <button
             onClick={() => setCartSheetOpen(true)}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12 rounded-xl shadow-lg flex items-center justify-between px-4 transition-all duration-200"
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12 rounded-xl shadow-lg flex items-center justify-between px-4 transition-all duration-205"
           >
-            <div className="flex items-center space-x-2">
-              <span className="w-6 h-6 rounded-full bg-indigo-500/50 flex items-center justify-center text-xs font-black">
-                {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
-              </span>
-              <span className="text-sm">View Cart</span>
-            </div>
-            <span className="text-sm font-black">₹{totals.total.toFixed(2)}</span>
+            <span className="text-sm font-black mx-auto flex items-center gap-1.5">
+              🛒 Cart ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} items) — ₹{totals.total.toFixed(2)}
+            </span>
           </button>
         </div>
       )}
@@ -930,11 +943,11 @@ export default function PosTerminal() {
                 />
               </FormField>
 
-              <div className="flex justify-end space-x-3 pt-2">
-                <Button variant="secondary" onClick={() => setIsCustomerModalOpen(false)}>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+                <Button variant="secondary" onClick={() => setIsCustomerModalOpen(false)} className="w-full sm:w-auto">
                   Close
                 </Button>
-                <Button type="submit" variant="primary">
+                <Button type="submit" variant="primary" className="w-full sm:w-auto">
                   Save & Attach
                 </Button>
               </div>
@@ -998,7 +1011,7 @@ export default function PosTerminal() {
           onClose={() => setIsCheckoutModalOpen(false)}
           size="lg"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Summary */}
             <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
               <h4 className="text-sm font-bold text-slate-800 dark:text-slate-250 border-b pb-2 mb-2">Order Summary</h4>
@@ -1028,7 +1041,7 @@ export default function PosTerminal() {
               {/* Loyalty Program Redemptions */}
               {customer && customer.loyalty_points > 0 && (
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-350 flex items-center">
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center">
                     <Sparkles className="w-4 h-4 mr-1 text-indigo-500" />
                     Loyalty Reward Points
                   </p>
@@ -1174,11 +1187,11 @@ export default function PosTerminal() {
                 </div>
               )}
 
-              <div className="flex space-x-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <Button
                   variant="secondary"
                   onClick={() => setIsCheckoutModalOpen(false)}
-                  className="flex-1"
+                  className="w-full sm:flex-1 py-3 sm:py-2 text-base sm:text-sm font-bold"
                 >
                   Back
                 </Button>
@@ -1186,7 +1199,7 @@ export default function PosTerminal() {
                   variant="primary"
                   onClick={handleCompleteSale}
                   disabled={!isReadyToConfirm}
-                  className="flex-1 font-bold"
+                  className="w-full sm:flex-1 py-3 sm:py-2 text-base sm:text-sm font-bold"
                 >
                   Confirm Payment
                 </Button>

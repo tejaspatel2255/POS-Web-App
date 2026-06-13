@@ -115,9 +115,9 @@ export default function Dashboard() {
       </div>
 
       {/* Main Charts & Breakdown row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Sales Chart Card */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-2 space-y-4">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-3 space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-50">Sales Performance</h4>
             <span className="text-xs font-semibold text-slate-400">Past 30 Days</span>
@@ -150,7 +150,7 @@ export default function Dashboard() {
         </div>
 
         {/* Top Products Card */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-2 space-y-4">
           <h4 className="text-base font-bold text-slate-900 dark:text-slate-50">Top Selling Products</h4>
           <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
             {topProducts.length > 0 ? (

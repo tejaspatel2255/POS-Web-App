@@ -15,6 +15,7 @@ export default function Topbar() {
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState('');
   const [modalLoading, setModalLoading] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -47,6 +48,7 @@ export default function Topbar() {
   if (!user) return null;
 
   const outletName = user.outlet_id?.name || 'No Outlet';
+  const displayOutletName = outletName.length > 15 ? outletName.substring(0, 15) + '...' : outletName;
 
   return (
     <>
@@ -65,7 +67,7 @@ export default function Topbar() {
             className="text-xs lg:text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-900/30 truncate max-w-[150px] lg:max-w-none"
             title={outletName}
           >
-            {outletName}
+            {displayOutletName}
           </span>
           {user.outlet_id?.address && (
             <span className="text-xs font-semibold text-slate-400 hidden lg:inline truncate max-w-xs">
@@ -105,26 +107,74 @@ export default function Topbar() {
             </Button>
           )}
 
-          {/* User Profile Info */}
-          <div className="flex items-center space-x-1.5 text-slate-700 dark:text-slate-200">
-            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs">
-              {user.name ? user.name[0].toUpperCase() : 'U'}
-            </div>
-            <span className="text-xs lg:text-sm font-bold truncate max-w-[80px] lg:max-w-[120px] hidden sm:inline">
-              {user.name}
-            </span>
-          </div>
-
           <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
 
-          {/* Logout button */}
-          <button
-            onClick={logout}
-            className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer shrink-0"
-            title="Log Out"
-          >
-            <LogOut className="w-4.5 h-4.5 lg:w-5 h-5" />
-          </button>
+          {/* User Profile Info Dropdown Trigger */}
+          <div className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center space-x-1.5 text-slate-700 dark:text-slate-200 hover:opacity-80 cursor-pointer focus:outline-none"
+            >
+              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs">
+                {user.name ? user.name[0].toUpperCase() : 'U'}
+              </div>
+              <span className="text-xs lg:text-sm font-bold truncate max-w-[80px] lg:max-w-[120px] hidden sm:inline">
+                {user.name}
+              </span>
+            </button>
+
+            {/* Dropdown Menu (Desktop) */}
+            {dropdownOpen && (
+              <div className="hidden md:block absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-50 py-2">
+                <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-805">
+                  <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{user.name}</p>
+                  <p className="text-[10px] text-slate-500 capitalize">{user.role}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    logout();
+                  }}
+                  className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center space-x-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Log Out</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Sheet Menu (Mobile) */}
+          {dropdownOpen && (
+            <>
+              <div 
+                onClick={() => setDropdownOpen(false)}
+                className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-40 md:hidden"
+              />
+              <div className="fixed inset-x-0 bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-850 rounded-t-2xl shadow-2xl z-50 p-5 md:hidden space-y-4 pb-8 transition-transform duration-300">
+                <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-2" />
+                <div className="flex items-center space-x-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm shrink-0">
+                    {user.name ? user.name[0].toUpperCase() : 'U'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{user.name}</p>
+                    <p className="text-xs text-slate-500 capitalize">{user.role} &bull; {outletName}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    logout();
+                  }}
+                  className="w-full h-11 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 text-rose-600 dark:text-rose-400 rounded-xl text-sm font-semibold flex items-center justify-center space-x-2"
+                >
+                  <LogOut className="w-4.5 h-4.5" />
+                  <span>Log Out</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </header>
 

@@ -16,10 +16,13 @@ import {
 import { useAuthStore } from '../../store/useAuthStore';
 import { useLayoutStore } from '../../store/useLayoutStore';
 
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+
 export default function Sidebar() {
   const { user } = useAuthStore();
   const location = useLocation();
   const { sidebarOpen, sidebarCollapsed, toggleCollapse } = useLayoutStore();
+  const isTablet = useMediaQuery('(min-width: 768px) and (max-width: 1023px)');
 
   if (!user) return null;
 
@@ -83,12 +86,28 @@ export default function Sidebar() {
   const allowedItems = menuItems.filter((item) => item.roles.includes(user.role));
   const isCollapsed = sidebarCollapsed && !sidebarOpen;
 
+  // Build classes dynamically
+  let sidebarClasses = "fixed top-0 bottom-0 left-0 z-40 h-screen bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300 ";
+  
+  if (sidebarOpen) {
+    sidebarClasses += "translate-x-0 w-[280px] ";
+  } else {
+    sidebarClasses += "-translate-x-full ";
+  }
+
+  if (isTablet) {
+    sidebarClasses += "md:translate-x-0 ";
+    if (isCollapsed) {
+      sidebarClasses += "md:sticky md:w-16 ";
+    } else {
+      sidebarClasses += "md:fixed md:w-60 md:shadow-2xl ";
+    }
+  } else {
+    sidebarClasses += "lg:translate-x-0 lg:static lg:w-60 ";
+  }
+
   return (
-    <aside className={`fixed md:sticky top-0 bottom-0 left-0 z-40 h-screen bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300 ${
-      sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-    } ${
-      isCollapsed ? 'md:w-16' : 'md:w-60'
-    } w-[280px]`}>
+    <aside className={sidebarClasses}>
       {/* Brand Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
         <div className="flex items-center space-x-2 overflow-hidden">
@@ -130,8 +149,7 @@ export default function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
-              title={isCollapsed ? item.name : undefined}
-              className={`flex items-center h-12 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer ${
+              className={`group relative flex items-center h-12 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer ${
                 isCollapsed ? 'justify-center px-0 w-10 mx-auto' : 'px-4'
               } ${
                 isActive
@@ -141,6 +159,11 @@ export default function Sidebar() {
             >
               <Icon className={`w-5 h-5 shrink-0 ${isCollapsed ? '' : 'mr-3'}`} />
               {!isCollapsed && <span>{item.name}</span>}
+              {isCollapsed && (
+                <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-slate-950 text-white text-xs font-semibold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-150 whitespace-nowrap shadow-xl border border-slate-800 z-50">
+                  {item.name}
+                </div>
+              )}
             </NavLink>
           );
         })}

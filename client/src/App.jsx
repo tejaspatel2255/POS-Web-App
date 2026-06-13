@@ -19,30 +19,59 @@ import Settings from './pages/Settings';
 import Sidebar from './components/layout/Sidebar';
 import Topbar from './components/layout/Topbar';
 
+import { useMediaQuery } from './hooks/useMediaQuery';
+
 // Protected Route Wrapper Layout Component
 function MainLayout() {
   const { user } = useAuthStore();
-  const { sidebarOpen, setSidebarOpen } = useLayoutStore();
+  const { sidebarOpen, setSidebarOpen, sidebarCollapsed, setSidebarCollapsed } = useLayoutStore();
   const location = useLocation();
+
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const isTablet = useMediaQuery('(min-width: 768px) and (max-width: 1023px)');
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   useEffect(() => {
     setSidebarOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, setSidebarOpen]);
+
+  // Handle responsive sidebar defaults
+  useEffect(() => {
+    if (isTablet) {
+      setSidebarCollapsed(true);
+    } else if (isDesktop) {
+      setSidebarCollapsed(false);
+    }
+  }, [isTablet, isDesktop, setSidebarCollapsed]);
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  const showOverlay = (isMobile && sidebarOpen) || (isTablet && !sidebarCollapsed);
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
-      {/* Backdrop overlay for mobile drawer */}
-      {sidebarOpen && (
+      {/* Backdrop overlay for mobile drawer & tablet expanded overlay */}
+      {showOverlay && (
         <div 
-          onClick={() => setSidebarOpen(false)}
+          onClick={() => {
+            setSidebarOpen(false);
+            if (isTablet) {
+              setSidebarCollapsed(true);
+            }
+          }}
           className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-30 lg:hidden cursor-pointer"
         />
       )}
+      
       <Sidebar />
+      
+      {/* Tablet Spacer to prevent layout shift when sidebar is expanded (which uses absolute/fixed positioning) */}
+      {isTablet && !sidebarCollapsed && (
+        <div className="w-16 shrink-0 transition-all duration-300" />
+      )}
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar />
         <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
