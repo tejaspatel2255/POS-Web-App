@@ -2,8 +2,20 @@ import { savePendingOrder } from './offlineDB';
 import { useOfflineStore } from '../store/offlineStore';
 import { supabase } from '../utils/supabaseClient';
 
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // Safe fallback for insecure HTTP contexts on mobile
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 export async function createOrder(payload, user, outletId) {
-  const localId = crypto.randomUUID();
+  const localId = generateUUID();
   const now = new Date().toISOString();
 
   // If online, save directly to Supabase via standard schema insert

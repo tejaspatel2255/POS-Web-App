@@ -26,6 +26,10 @@ export async function syncPendingOrders() {
     console.log(`[SyncEngine] Found ${pendingOrders.length} orders to sync`);
 
     for (const order of pendingOrders) {
+      if (!navigator.onLine) {
+        console.log('[SyncEngine] Network connection lost during sync, aborting remaining sync tasks.');
+        break;
+      }
       try {
         if (order.sync_attempts >= 5) {
           result.failed++;

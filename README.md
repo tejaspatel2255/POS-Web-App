@@ -8,6 +8,11 @@ A modern, multi-user, multi-outlet Point of Sale (POS) application built entirel
 
 - **Auth & Security**: Supabase JWT authentication. Row-level triggers automatically create and link staff profiles on signup. Role-Based Access Control (RBAC) gates administration pages.
 - **Implicit Multi-Outlet Scoping**: Every database request is scoped to the user's assigned outlet branch, preventing cashiers from accessing other stores' sales or products.
+- **Offline-First Billing**:
+  - **Seamless Offline POS**: Create bills, browse catalog, search categories, apply discounts, and complete sales without internet.
+  - **IndexedDB Cache & Queue**: Automatically caches products/categories and logs local orders to IndexedDB under secure or insecure context fallbacks.
+  - **Background Sync Engine**: Detects internet restoration, bulk-uploads pending sales, decrements product stock, logs inventory changes, and recalculates loyalty points.
+  - **Connection Badges**: Prominent status banners with manual "Sync Now" options and dynamic order counter badges next to sidebar logs.
 - **Responsive POS Terminal**:
   - **Desktop**: 2-column sidebar cart layout.
   - **Tablet**: Collapsible rail navigation.
