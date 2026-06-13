@@ -120,12 +120,12 @@ export default function ResetPassword() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 relative overflow-hidden">
         {/* Background blobs for premium glassmorphism */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-650/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-650/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
 
         <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl relative z-10 text-center">
           <div className="w-16 h-16 bg-rose-950/40 border border-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-            <XCircle className="w-8 h-8 text-rose-455" />
+            <XCircle className="w-8 h-8 text-rose-500" />
           </div>
           <h1 className="text-2xl font-black text-white mb-2 tracking-tight">Link Expired</h1>
           <p className="text-slate-400 text-sm mb-8 leading-relaxed">
@@ -158,12 +158,12 @@ export default function ResetPassword() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 relative overflow-hidden">
         {/* Background blobs for premium glassmorphism */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-650/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-650/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
 
         <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl relative z-10 text-center">
           <div className="w-16 h-16 bg-emerald-950/40 border border-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-8 h-8 text-emerald-450" />
+            <CheckCircle className="w-8 h-8 text-emerald-500" />
           </div>
           <h1 className="text-2xl font-black text-white mb-2 tracking-tight">
             Password Updated!
@@ -185,11 +185,11 @@ export default function ResetPassword() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 relative overflow-hidden">
         {/* Background blobs for premium glassmorphism */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-650/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-650/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
 
         <div className="text-center relative z-10">
-          <div className="w-10 h-10 border-2 border-indigo-550/25 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-10 h-10 border-2 border-indigo-500/25 border-t-indigo-500 rounded-full animate-spin mx-auto mb-4" />
           <p className="text-slate-400 text-sm font-semibold">Verifying your reset link...</p>
         </div>
       </div>
@@ -200,14 +200,14 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 relative overflow-hidden">
       {/* Background blobs for premium glassmorphism */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-650/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-650/20 rounded-full blur-3xl" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
 
       <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl relative z-10">
 
         {/* Icon */}
         <div className="w-14 h-14 bg-indigo-950/40 border border-indigo-900/30 rounded-2xl flex items-center justify-center mb-6">
-          <Lock className="w-7 h-7 text-indigo-455" />
+          <Lock className="w-7 h-7 text-indigo-500" />
         </div>
 
         <h1 className="text-2xl font-black text-white mb-2 tracking-tight">
@@ -219,7 +219,7 @@ export default function ResetPassword() {
 
         {/* Global error */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-950/30 border border-rose-900/40 text-rose-455 text-xs font-semibold flex items-start">
+          <div className="mb-6 p-4 rounded-xl bg-rose-950/30 border border-rose-900/40 text-rose-500 text-xs font-semibold flex items-start">
             <ShieldAlert className="w-4 h-4 mr-2 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
@@ -291,7 +291,7 @@ export default function ResetPassword() {
                       >
                         <CheckCircle 
                           size={13} 
-                          className={passed ? 'text-emerald-450' : 'text-slate-700'} 
+                          className={passed ? 'text-emerald-500' : 'text-slate-700'} 
                         />
                         {rule.label}
                       </li>
@@ -336,7 +336,7 @@ export default function ResetPassword() {
             {/* Match indicator */}
             {confirmPassword && password === confirmPassword && (
               <p className="mt-1.5 text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
-                <CheckCircle size={13} className="text-emerald-450" /> Passwords match
+                <CheckCircle size={13} className="text-emerald-500" /> Passwords match
               </p>
             )}
           </FormField>

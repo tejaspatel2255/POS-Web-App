@@ -107,7 +107,7 @@ export default function Topbar() {
 
           {/* User Profile Info */}
           <div className="flex items-center space-x-1.5 text-slate-700 dark:text-slate-200">
-            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-650 dark:text-slate-300 font-bold text-xs">
+            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs">
               {user.name ? user.name[0].toUpperCase() : 'U'}
             </div>
             <span className="text-xs lg:text-sm font-bold truncate max-w-[80px] lg:max-w-[120px] hidden sm:inline">

@@ -447,7 +447,7 @@ export default function PosTerminal() {
                 </button>
                 <button
                   onClick={() => removeFromCart(item.product._id, item.variantName)}
-                  className="p-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-650 cursor-pointer"
+                  className="p-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -457,7 +457,7 @@ export default function PosTerminal() {
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center p-6">
             <FolderHeart className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-3" />
-            <p className="text-xs text-slate-405 font-bold">Shopping cart is empty</p>
+            <p className="text-xs text-slate-400 font-bold">Shopping cart is empty</p>
             <p className="text-[10px] text-slate-400 mt-0.5">Click products on the left to add items</p>
           </div>
         )}

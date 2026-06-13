@@ -46,19 +46,19 @@ export default function Sidebar() {
       name: 'Products',
       path: '/products',
       icon: ShoppingBag,
-      roles: ['admin', 'manager'],
+      roles: ['admin', 'manager', 'cashier'],
     },
     {
       name: 'Categories',
       path: '/categories',
       icon: FolderOpen,
-      roles: ['admin', 'manager'],
+      roles: ['admin', 'manager', 'cashier'],
     },
     {
       name: 'Inventory',
       path: '/inventory',
       icon: Boxes,
-      roles: ['admin', 'manager'],
+      roles: ['admin', 'manager', 'cashier'],
     },
     {
       name: 'Customers CRM',

@@ -52,12 +52,12 @@ export default function ForgotPassword() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 relative overflow-hidden">
         {/* Background blobs for premium glassmorphism */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-650/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-650/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
 
         <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl relative z-10 text-center">
           <div className="w-16 h-16 bg-emerald-950/40 border border-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-8 h-8 text-emerald-450" />
+            <CheckCircle className="w-8 h-8 text-emerald-500" />
           </div>
 
           <h1 className="text-2xl font-black text-white mb-2 tracking-tight">
@@ -97,8 +97,8 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 relative overflow-hidden">
       {/* Background blobs for premium glassmorphism */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-650/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-650/20 rounded-full blur-3xl" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
 
       <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl relative z-10">
         
@@ -113,7 +113,7 @@ export default function ForgotPassword() {
 
         {/* Icon */}
         <div className="w-14 h-14 bg-indigo-950/40 border border-indigo-900/30 rounded-2xl flex items-center justify-center mb-6">
-          <Mail className="w-7 h-7 text-indigo-455" />
+          <Mail className="w-7 h-7 text-indigo-500" />
         </div>
 
         {/* Heading */}
@@ -127,7 +127,7 @@ export default function ForgotPassword() {
 
         {/* Error notification block */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-950/30 border border-rose-900/40 text-rose-450 text-xs font-semibold flex items-start">
+          <div className="mb-6 p-4 rounded-xl bg-rose-950/30 border border-rose-900/40 text-rose-500 text-xs font-semibold flex items-start">
             <ShieldAlert className="w-4 h-4 mr-2 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>

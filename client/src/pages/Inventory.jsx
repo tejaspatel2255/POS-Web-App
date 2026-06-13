@@ -242,7 +242,7 @@ export default function Inventory() {
     {
       header: 'Timestamp',
       key: 'timestamp',
-      render: (row) => <span className="text-xs text-slate-450">{new Date(row.timestamp).toLocaleString()}</span>,
+      render: (row) => <span className="text-xs text-slate-400">{new Date(row.timestamp).toLocaleString()}</span>,
     },
   ];
 
@@ -261,8 +261,8 @@ export default function Inventory() {
           onClick={() => setActiveTab('levels')}
           className={`h-12 px-6 text-sm font-bold flex items-center border-b-2 transition-all cursor-pointer ${
             activeTab === 'levels'
-              ? 'border-indigo-600 text-indigo-650 dark:text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-650'
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
           }`}
         >
           <Boxes className="w-4 h-4 mr-2" /> Stock Levels
@@ -271,8 +271,8 @@ export default function Inventory() {
           onClick={() => setActiveTab('logs')}
           className={`h-12 px-6 text-sm font-bold flex items-center border-b-2 transition-all cursor-pointer ${
             activeTab === 'logs'
-              ? 'border-indigo-600 text-indigo-650 dark:text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-650'
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
           }`}
         >
           <History className="w-4 h-4 mr-2" /> Audit Trail Logs
@@ -288,7 +288,7 @@ export default function Inventory() {
           emptyState={
             <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
               <Boxes className="w-10 h-10 text-slate-350 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">Inventory levels are empty. Go to catalog to add stock.</p>
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Inventory levels are empty. Go to catalog to add stock.</p>
             </div>
           }
         />
@@ -301,7 +301,7 @@ export default function Inventory() {
           emptyState={
             <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
               <History className="w-10 h-10 text-slate-350 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">No stock adjustment entries in logs</p>
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No stock adjustment entries in logs</p>
             </div>
           }
         />
@@ -322,7 +322,7 @@ export default function Inventory() {
                 value={adjustChange}
                 onChange={(e) => setAdjustChange(e.target.value)}
                 placeholder="e.g. +10 or -3"
-                className="w-full h-11 px-4 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </FormField>
 
@@ -331,7 +331,7 @@ export default function Inventory() {
                 required
                 value={adjustReason}
                 onChange={(e) => setAdjustReason(e.target.value)}
-                className="w-full h-11 px-3 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full h-11 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Select Reason</option>
                 {reasons.map((r) => (
@@ -367,7 +367,7 @@ export default function Inventory() {
                 required
                 value={transferTargetOutlet}
                 onChange={(e) => setTransferTargetOutlet(e.target.value)}
-                className="w-full h-11 px-3 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full h-11 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Select Destination Branch</option>
                 {outlets
@@ -388,7 +388,7 @@ export default function Inventory() {
                 value={transferQty}
                 onChange={(e) => setTransferQty(e.target.value)}
                 placeholder="10"
-                className="w-full h-11 px-4 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none"
+                className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none"
               />
             </FormField>
 

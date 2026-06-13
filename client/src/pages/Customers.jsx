@@ -164,14 +164,14 @@ export default function Customers() {
           </Button>
           <button
             onClick={() => openEditForm(row)}
-            className="p-2 text-slate-500 hover:text-indigo-650 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-850 transition-colors cursor-pointer"
+            className="p-2 text-slate-500 hover:text-indigo-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-850 transition-colors cursor-pointer"
           >
             <Edit className="w-4 h-4" />
           </button>
           {(user?.role === 'admin' || user?.role === 'manager') && (
             <button
               onClick={() => handleDeleteCustomer(row._id)}
-              className="p-2 text-slate-500 hover:text-rose-650 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-850 transition-colors cursor-pointer"
+              className="p-2 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-850 transition-colors cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -198,7 +198,7 @@ export default function Customers() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, email, phone number..."
-            className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-55 text-xs focus:outline-none"
+            className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-xs focus:outline-none"
           />
         </div>
       </div>
@@ -212,7 +212,7 @@ export default function Customers() {
         emptyState={
           <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
             <Users className="w-10 h-10 text-slate-350 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">No customers registered in this branch</p>
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No customers registered in this branch</p>
           </div>
         }
       />
@@ -232,7 +232,7 @@ export default function Customers() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Jane Smith"
-                className="w-full h-11 px-4 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none"
+                className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none"
               />
             </FormField>
 
@@ -243,7 +243,7 @@ export default function Customers() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="9876543210"
-                className="w-full h-11 px-4 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none"
+                className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none"
               />
             </FormField>
 
@@ -253,7 +253,7 @@ export default function Customers() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="jane.smith@example.com"
-                className="w-full h-11 px-4 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none"
+                className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none"
               />
             </FormField>
 
@@ -263,7 +263,7 @@ export default function Customers() {
                 min="0"
                 value={loyaltyPoints}
                 onChange={(e) => setLoyaltyPoints(e.target.value)}
-                className="w-full h-11 px-4 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none"
+                className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none"
               />
             </FormField>
 
@@ -302,7 +302,7 @@ export default function Customers() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-450 uppercase block">Total Spent</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Spent</span>
                     <span className="text-base font-extrabold text-slate-850 dark:text-slate-50 mt-0.5">
                       ₹{profileData.totalSpent.toFixed(2)}
                     </span>
@@ -314,7 +314,7 @@ export default function Customers() {
 
                 <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-450 uppercase block">Visits Count</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Visits Count</span>
                     <span className="text-base font-extrabold text-slate-850 dark:text-slate-50 mt-0.5">
                       {profileData.visitCount} times
                     </span>
@@ -326,7 +326,7 @@ export default function Customers() {
 
                 <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-450 uppercase block">Points Balance</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">Points Balance</span>
                     <span className="text-base font-extrabold text-slate-850 dark:text-slate-50 mt-0.5">
                       {profileData.customer.loyalty_points} pts
                     </span>
@@ -343,18 +343,18 @@ export default function Customers() {
                 <div className="max-h-60 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-xl">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-900 text-slate-405 font-bold uppercase border-b border-slate-100 dark:border-slate-800">
+                      <tr className="bg-slate-50 dark:bg-slate-900 text-slate-400 font-bold uppercase border-b border-slate-100 dark:border-slate-800">
                         <th className="p-3">Order ID</th>
                         <th className="p-3">Date</th>
                         <th className="p-3">Status</th>
                         <th className="p-3 text-right">Total</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-650 dark:text-slate-350">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-600 dark:text-slate-350">
                       {profileData.purchaseHistory.length > 0 ? (
                         profileData.purchaseHistory.map((order) => (
                           <tr key={order._id}>
-                            <td className="p-3 font-bold text-indigo-650">
+                            <td className="p-3 font-bold text-indigo-600">
                               {order._id.substring(order._id.length - 8).toUpperCase()}
                             </td>
                             <td className="p-3">{new Date(order.createdAt).toLocaleDateString()}</td>

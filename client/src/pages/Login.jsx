@@ -55,8 +55,8 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 relative overflow-hidden">
       {/* Background blobs for premium glassmorphism */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-650/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-650/20 rounded-full blur-3xl" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
 
       {/* Card container */}
       <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl relative z-10">
@@ -64,7 +64,7 @@ export default function Login() {
           <img
             src="/logo.png"
             alt="TejasPOS"
-            className="w-14 h-14 rounded-2xl object-cover shadow-lg shadow-indigo-550/20 mb-4"
+            className="w-14 h-14 rounded-2xl object-cover shadow-lg shadow-indigo-500/20 mb-4"
             onError={(e) => {
               e.target.style.display = 'none';
               const fallback = e.target.parentElement.querySelector('.logo-fallback');

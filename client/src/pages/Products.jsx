@@ -330,7 +330,7 @@ export default function Products() {
           </button>
           <button
             onClick={() => handleDeleteProduct(row._id)}
-            className="p-2 text-slate-500 hover:text-rose-650 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-850 transition-colors cursor-pointer"
+            className="p-2 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-850 transition-colors cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -403,7 +403,7 @@ export default function Products() {
       {isMobile ? (
         loading ? (
           <div className="flex justify-center py-12">
-            <svg className="animate-spin h-8 w-8 text-indigo-650" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
@@ -434,7 +434,7 @@ export default function Products() {
                         </h4>
                         <p className="text-[11px] text-slate-400 font-semibold mt-0.5">{p.sku}</p>
                         {p.variants?.length > 0 && (
-                          <span className="inline-block mt-1 text-[9px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 px-1.5 py-0.5 rounded font-bold">
+                          <span className="inline-block mt-1 text-[9px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 px-1.5 py-0.5 rounded font-bold">
                             {p.variants.length} Variants
                           </span>
                         )}
@@ -488,8 +488,8 @@ export default function Products() {
           </div>
         ) : (
           <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
-            <ShoppingBag className="w-10 h-10 text-slate-305 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">No products inside catalog</p>
+            <ShoppingBag className="w-10 h-10 text-slate-350 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No products inside catalog</p>
           </div>
         )
       ) : (
@@ -503,8 +503,8 @@ export default function Products() {
           onSelectionChange={setSelectedIds}
           emptyState={
             <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
-              <ShoppingBag className="w-10 h-10 text-slate-305 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">No products inside catalog</p>
+              <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No products inside catalog</p>
             </div>
           }
         />
@@ -702,7 +702,7 @@ export default function Products() {
               <button
                 type="button"
                 onClick={addVariant}
-                className="mt-2.5 inline-flex items-center text-xs font-bold text-indigo-650 hover:text-indigo-700 cursor-pointer"
+                className="mt-2.5 inline-flex items-center text-xs font-bold text-indigo-600 hover:text-indigo-700 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" /> Add Variant Option
               </button>
@@ -729,7 +729,7 @@ export default function Products() {
         >
           <form onSubmit={handleImportCSVSubmit} className="space-y-4">
             <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 font-semibold space-y-1">
-              <p className="font-bold flex items-center text-slate-650">
+              <p className="font-bold flex items-center text-slate-600">
                 <Info className="w-3.5 h-3.5 mr-1 text-indigo-500" /> CSV Format Guideline:
               </p>
               <p>The first line must contain exactly the headers below (case-insensitive):</p>

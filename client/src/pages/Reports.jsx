@@ -127,8 +127,8 @@ export default function Reports() {
           onClick={() => setActiveTab('sales')}
           className={`h-12 px-6 text-sm font-bold flex items-center border-b-2 transition-all cursor-pointer ${
             activeTab === 'sales'
-              ? 'border-indigo-600 text-indigo-650 dark:text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-650'
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
           }`}
         >
           <TrendingUp className="w-4 h-4 mr-2" /> Sales & Profit Analytics
@@ -137,8 +137,8 @@ export default function Reports() {
           onClick={() => setActiveTab('inventory')}
           className={`h-12 px-6 text-sm font-bold flex items-center border-b-2 transition-all cursor-pointer ${
             activeTab === 'inventory'
-              ? 'border-indigo-600 text-indigo-650 dark:text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-650'
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
           }`}
         >
           <Layers className="w-4 h-4 mr-2" /> Inventory Valuation
@@ -201,7 +201,7 @@ export default function Reports() {
                   ₹{salesData.metrics.grossProfit.toFixed(2)}
                 </h3>
               </div>
-              <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-650 rounded-xl">
+              <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 rounded-xl">
                 <TrendingUp className="w-6 h-6" />
               </div>
             </div>
@@ -275,7 +275,7 @@ export default function Reports() {
                   {inventoryData.metrics.totalItems}
                 </h3>
               </div>
-              <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 rounded-xl">
+              <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 rounded-xl">
                 <Layers className="w-6 h-6" />
               </div>
             </div>
@@ -287,7 +287,7 @@ export default function Reports() {
                   {inventoryData.metrics.lowStockCount}
                 </h3>
               </div>
-              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 text-rose-650 rounded-xl">
+              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 rounded-xl">
                 <AlertTriangle className="w-6 h-6" />
               </div>
             </div>
@@ -329,7 +329,7 @@ export default function Reports() {
             <div className="overflow-x-auto border border-slate-100 dark:border-slate-850 rounded-xl">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-900 text-slate-405 font-bold uppercase border-b border-slate-100 dark:border-slate-850">
+                  <tr className="bg-slate-50 dark:bg-slate-900 text-slate-400 font-bold uppercase border-b border-slate-100 dark:border-slate-850">
                     <th className="p-3">Product Name</th>
                     <th className="p-3">SKU</th>
                     <th className="p-3 text-center">Qty</th>
@@ -357,7 +357,7 @@ export default function Reports() {
           </div>
         </div>
       ) : (
-        <div className="h-64 flex items-center justify-center text-slate-405">
+        <div className="h-64 flex items-center justify-center text-slate-400">
           No records compiled
         </div>
       )}

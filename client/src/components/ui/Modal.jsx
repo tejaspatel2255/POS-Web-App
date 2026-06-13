@@ -32,7 +32,7 @@ export default function Modal({
       />
 
       {/* Modal Content container */}
-      <div className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border-t sm:border border-slate-105 dark:border-slate-800 z-10 flex flex-col max-h-[92vh] sm:max-h-[85vh] overflow-hidden transform transition-all duration-300`}>
+      <div className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 z-10 flex flex-col max-h-[92vh] sm:max-h-[85vh] overflow-hidden transform transition-all duration-300`}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">
@@ -41,7 +41,7 @@ export default function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-655 hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>

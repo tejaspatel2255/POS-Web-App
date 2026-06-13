@@ -321,7 +321,7 @@ export default function OrdersLog() {
       {isMobile ? (
         loading ? (
           <div className="flex justify-center py-12">
-            <svg className="animate-spin h-8 w-8 text-indigo-650" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
@@ -333,7 +333,7 @@ export default function OrdersLog() {
               return (
                 <div
                   key={order._id}
-                  className="p-4 bg-white dark:bg-slate-900 border border-slate-105 dark:border-slate-800 rounded-2xl shadow-sm space-y-4"
+                  className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-4"
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -403,8 +403,8 @@ export default function OrdersLog() {
           </div>
         ) : (
           <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
-            <FileText className="w-10 h-10 text-slate-305 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">No transactions match the selected criteria</p>
+            <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No transactions match the selected criteria</p>
           </div>
         )
       ) : (
@@ -415,8 +415,8 @@ export default function OrdersLog() {
           idKey="_id"
           emptyState={
             <div className="text-center p-12 bg-white dark:bg-slate-900 border border-dashed rounded-2xl">
-              <FileText className="w-10 h-10 text-slate-305 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-slate-505 dark:text-slate-400">No transactions match the selected criteria</p>
+              <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No transactions match the selected criteria</p>
             </div>
           }
         />
@@ -609,7 +609,7 @@ export default function OrdersLog() {
           size="sm"
         >
           <form onSubmit={handleRefundSubmit} className="space-y-4">
-            <p className="text-xs text-slate-505 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Are you sure you want to refund this order? Items will be restored to active inventory, and loyalty points deducted.
             </p>
             <FormField label="Refund Justification / Reason" required>
@@ -619,7 +619,7 @@ export default function OrdersLog() {
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
                 placeholder="Customer return, item damaged..."
-                className="w-full h-11 px-4 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </FormField>
 
@@ -653,7 +653,7 @@ export default function OrdersLog() {
           size="sm"
         >
           <form onSubmit={handleVoidSubmit} className="space-y-4">
-            <p className="text-xs text-slate-505 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Are you sure you want to void this order? Items will be restored to active inventory. This cannot be undone.
             </p>
             <FormField label="Void Justification / Reason" required>
@@ -663,7 +663,7 @@ export default function OrdersLog() {
                 value={voidReason}
                 onChange={(e) => setVoidReason(e.target.value)}
                 placeholder="Incorrect transaction entry, operator error..."
-                className="w-full h-11 px-4 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </FormField>
 
