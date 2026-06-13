@@ -427,11 +427,12 @@ const apiClient = {
           return { data: { message: 'Import successful' } };
         } else {
           // Regular product insert
+          const { initial_stock, ...insertData } = payload;
           const { data, error } = await supabase
             .from('products')
             .insert({
-              ...payload,
-              stock: Number(payload.initial_stock || 0),
+              ...insertData,
+              stock: Number(initial_stock || 0),
               outlet_id: outletId
             })
             .select()
