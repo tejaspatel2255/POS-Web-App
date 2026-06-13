@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { supabase } from '../utils/supabaseClient';
-import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
 
 export const useAuthStore = create((set, get) => ({
@@ -21,17 +20,20 @@ export const useAuthStore = create((set, get) => ({
 
       if (error) throw error;
 
-      // Sync user with MongoDB backend
-      const response = await apiClient.post('/api/auth/sync', {
-        email: data.user.email,
-        supabaseUid: data.user.id,
-      });
+      // Fetch user profile from profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*, outlet_id(*)')
+        .eq('id', data.user.id)
+        .single();
 
-      set({ user: response.data.user, session: data.session, loading: false });
-      toast.success(`Welcome back, ${response.data.user.name}!`);
-      return response.data.user;
+      if (profileError) throw profileError;
+
+      set({ user: profile, session: data.session, loading: false });
+      toast.success(`Welcome back, ${profile.name || 'User'}!`);
+      return profile;
     } catch (err) {
-      const message = err.response?.data?.message || err.message || 'Login failed';
+      const message = err.message || 'Login failed';
       set({ error: message, loading: false });
       toast.error(message);
       throw err;
@@ -51,20 +53,11 @@ export const useAuthStore = create((set, get) => ({
 
       if (error) throw error;
 
-      // Sync newly signed up user with MongoDB
-      const response = await apiClient.post('/api/auth/sync', {
-        email,
-        name,
-        role,
-        outletId,
-        supabaseUid: data.user.id,
-      });
-
-      toast.success('Registration successful!');
+      toast.success('Registration successful! Please login.');
       set({ loading: false });
-      return response.data.user;
+      return data.user;
     } catch (err) {
-      const message = err.response?.data?.message || err.message || 'Signup failed';
+      const message = err.message || 'Signup failed';
       set({ error: message, loading: false });
       toast.error(message);
       throw err;
@@ -89,13 +82,19 @@ export const useAuthStore = create((set, get) => ({
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
-        // Fetch/sync user details from MongoDB
-        const response = await apiClient.post('/api/auth/sync', {
-          email: session.user.email,
-          supabaseUid: session.user.id,
-        });
-        
-        set({ user: response.data.user, session, loading: false });
+        // Fetch user profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*, outlet_id(*)')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (profileError) {
+          // If no profile yet, wait or sign out
+          set({ user: null, session: null, loading: false });
+        } else {
+          set({ user: profile, session, loading: false });
+        }
       } else {
         set({ user: null, session: null, loading: false });
       }

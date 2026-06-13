@@ -4,18 +4,18 @@ import toast from 'react-hot-toast';
 export const useCartStore = create((set, get) => ({
   cartItems: [],
   customer: null,
-  orderDiscount: null, // { name, type, default_value, default_value }
+  orderDiscount: null, // { name, type, default_value }
   heldOrders: [], // array of cart snapshots: { id, customer, cartItems, orderDiscount, time }
 
   addToCart: (product, variant = null) => {
     const { cartItems } = get();
-    const itemId = product._id;
+    const itemId = product.id || product._id;
     const variantName = variant ? variant.name : '';
-    const price = variant ? variant.price : product.base_price;
-    const cost = variant ? variant.cost : product.cost_price;
+    const price = variant ? Number(variant.price) : Number(product.base_price);
+    const cost = variant ? Number(variant.cost) : Number(product.cost_price || 0);
 
     const existingIndex = cartItems.findIndex(
-      (item) => item.product._id === itemId && item.variantName === variantName
+      (item) => (item.product.id || item.product._id) === itemId && item.variantName === variantName
     );
 
     let updated;
@@ -43,7 +43,7 @@ export const useCartStore = create((set, get) => ({
   removeFromCart: (productId, variantName = '') => {
     const { cartItems } = get();
     const updated = cartItems.filter(
-      (item) => !(item.product._id === productId && item.variantName === variantName)
+      (item) => !((item.product.id || item.product._id) === productId && item.variantName === variantName)
     );
     set({ cartItems: updated });
   },
@@ -56,7 +56,7 @@ export const useCartStore = create((set, get) => ({
     }
 
     const updated = cartItems.map((item) => {
-      if (item.product._id === productId && item.variantName === variantName) {
+      if ((item.product.id || item.product._id) === productId && item.variantName === variantName) {
         return { ...item, quantity: Number(qty) };
       }
       return item;
@@ -131,10 +131,11 @@ export const useCartStore = create((set, get) => ({
     // 2. Calculate Order-level Discount
     let discountAmount = 0;
     if (orderDiscount) {
+      const val = Number(orderDiscount.default_value || orderDiscount.value || 0);
       if (orderDiscount.type === 'percentage') {
-        discountAmount = subtotal * (Number(orderDiscount.default_value) / 100);
+        discountAmount = subtotal * (val / 100);
       } else {
-        discountAmount = Number(orderDiscount.default_value);
+        discountAmount = val;
       }
     }
     // Cannot exceed subtotal
@@ -152,7 +153,7 @@ export const useCartStore = create((set, get) => ({
       const itemNetPrice = itemSubtotal * discountRatio;
       
       const taxRate = item.taxRate;
-      if (taxRate && taxRate.percentage > 0) {
+      if (taxRate && Number(taxRate.percentage) > 0) {
         const percentage = Number(taxRate.percentage);
         const itemTax = itemNetPrice * (percentage / 100);
         

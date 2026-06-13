@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import apiClient from '../api/apiClient';
+import { supabase } from '../utils/supabaseClient';
+import { useAuthStore } from './useAuthStore';
 import toast from 'react-hot-toast';
 
 export const useShiftStore = create((set, get) => ({
@@ -8,61 +9,138 @@ export const useShiftStore = create((set, get) => ({
   allShifts: [],
 
   fetchCurrentShift: async () => {
+    const user = useAuthStore.getState().user;
+    if (!user) return null;
+    
     set({ loading: true });
     try {
-      const response = await apiClient.get('/api/shifts/current');
-      set({ currentShift: response.data, loading: false });
-      return response.data;
+      const { data, error } = await supabase
+        .from('shifts')
+        .select('*')
+        .eq('cashier_id', user.id)
+        .eq('status', 'open')
+        .maybeSingle();
+
+      if (error) throw error;
+      set({ currentShift: data, loading: false });
+      return data;
     } catch (err) {
       set({ currentShift: null, loading: false });
+      return null;
     }
   },
 
   openShift: async (openingCash) => {
+    const user = useAuthStore.getState().user;
+    if (!user || !user.outlet_id) {
+      toast.error('You must belong to an outlet to open a shift.');
+      return;
+    }
+
     set({ loading: true });
     try {
-      const response = await apiClient.post('/api/shifts/open', {
-        opening_cash: Number(openingCash),
-      });
-      set({ currentShift: response.data, loading: false });
+      const { data, error } = await supabase
+        .from('shifts')
+        .insert({
+          cashier_id: user.id,
+          opening_balance: Number(openingCash),
+          status: 'open',
+          outlet_id: user.outlet_id.id || user.outlet_id,
+          opening_time: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      set({ currentShift: data, loading: false });
       toast.success('Shift opened successfully! Cash drawer initialized.');
-      return response.data;
+      return data;
     } catch (err) {
-      const msg = err.response?.data?.message || 'Error opening shift';
-      toast.error(msg);
+      toast.error(err.message || 'Error opening shift');
       set({ loading: false });
       throw err;
     }
   },
 
   closeShift: async (actualClosingCash) => {
+    const { currentShift } = get();
+    const user = useAuthStore.getState().user;
+    if (!currentShift) return;
+
     set({ loading: true });
     try {
-      const response = await apiClient.post('/api/shifts/close', {
-        actual_closing_cash: Number(actualClosingCash),
-      });
+      // 1. Calculate expected cash from orders during this shift
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('payments, status')
+        .eq('cashier_id', user.id)
+        .eq('status', 'completed')
+        .gte('created_at', currentShift.opening_time);
+
+      if (ordersError) throw ordersError;
+
+      let cashSales = 0;
+      if (orders) {
+        orders.forEach((o) => {
+          const paymentsArray = Array.isArray(o.payments) ? o.payments : JSON.parse(o.payments || '[]');
+          paymentsArray.forEach((p) => {
+            if (p.method.toLowerCase() === 'cash') {
+              cashSales += Number(p.amount);
+            }
+          });
+        });
+      }
+
+      const expectedCash = Number(currentShift.opening_balance) + cashSales;
+
+      // 2. Update the shift record
+      const { data: closedShift, error: closeError } = await supabase
+        .from('shifts')
+        .update({
+          closing_time: new Date().toISOString(),
+          expected_cash: expectedCash,
+          actual_cash: Number(actualClosingCash),
+          status: 'closed'
+        })
+        .eq('id', currentShift.id)
+        .select()
+        .single();
+
+      if (closeError) throw closeError;
+
       set({ currentShift: null, loading: false });
       
-      const discrepancy = response.data.actual_closing_cash - response.data.closing_cash;
+      const discrepancy = Number(actualClosingCash) - expectedCash;
       if (discrepancy === 0) {
         toast.success('Shift closed successfully! Drawer balanced.');
       } else {
-        toast.warn(`Shift closed with discrepancy of $${discrepancy.toFixed(2)}`);
+        toast(`Shift closed with discrepancy of $${discrepancy.toFixed(2)}`, {
+          icon: '⚠️'
+        });
       }
-      return response.data;
+      return closedShift;
     } catch (err) {
-      const msg = err.response?.data?.message || 'Error closing shift';
-      toast.error(msg);
+      toast.error(err.message || 'Error closing shift');
       set({ loading: false });
       throw err;
     }
   },
 
   fetchShiftsLog: async () => {
+    const user = useAuthStore.getState().user;
+    if (!user || !user.outlet_id) return;
+
     set({ loading: true });
     try {
-      const response = await apiClient.get('/api/shifts');
-      set({ allShifts: response.data, loading: false });
+      const outletUuid = user.outlet_id.id || user.outlet_id;
+      const { data, error } = await supabase
+        .from('shifts')
+        .select('*, cashier_id(*)')
+        .eq('outlet_id', outletUuid)
+        .order('opening_time', { ascending: false });
+
+      if (error) throw error;
+      set({ allShifts: data, loading: false });
     } catch (err) {
       toast.error('Error fetching shifts log');
       set({ loading: false });
