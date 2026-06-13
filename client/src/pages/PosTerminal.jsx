@@ -147,16 +147,19 @@ export default function PosTerminal() {
   }, [user, resolvedOutletId]);
 
   useEffect(() => {
-    if (isDiscountModalOpen) {
-      if (orderDiscount && orderDiscount._id === 'custom') {
+    if (orderDiscount) {
+      const currentNum = Number(customDiscountValue);
+      const discountNum = Number(orderDiscount.value || orderDiscount.default_value || 0);
+      if (currentNum !== discountNum || customDiscountType !== orderDiscount.type) {
         setCustomDiscountValue(String(orderDiscount.value || orderDiscount.default_value || ''));
         setCustomDiscountType(orderDiscount.type || 'fixed');
-      } else {
+      }
+    } else {
+      if (customDiscountValue !== '') {
         setCustomDiscountValue('');
-        setCustomDiscountType('fixed');
       }
     }
-  }, [isDiscountModalOpen, orderDiscount]);
+  }, [orderDiscount]);
 
   // Filter products based on search and category
   // NOTE: category_id is a Supabase nested join object — it has `.id`, not `._id`
@@ -500,20 +503,83 @@ export default function PosTerminal() {
           <span>₹{totals.subtotal.toFixed(2)}</span>
         </div>
 
-        {/* Discount Trigger */}
-        <div className="flex justify-between text-xs text-slate-500 font-semibold items-center">
+        {/* Discount Inline Input */}
+        <div className="flex items-center justify-between text-xs text-slate-500 font-semibold gap-3 py-1">
           <button
+            type="button"
             onClick={() => setIsDiscountModalOpen(true)}
-            className="flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold cursor-pointer"
+            className="flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold cursor-pointer shrink-0"
+            title="Select pre-configured discount"
           >
             <span className="font-extrabold mr-1 text-sm leading-none">₹</span>
-            {orderDiscount ? `Discount (${orderDiscount.name})` : 'Apply Discount'}
+            Discount
           </button>
-          {totals.discountAmount > 0 ? (
-            <span className="text-rose-500 font-bold">-₹{totals.discountAmount.toFixed(2)}</span>
-          ) : (
-            <span>₹0.00</span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {totals.discountAmount > 0 && (
+              <span className="text-rose-500 font-bold text-xs mr-1">
+                -₹{totals.discountAmount.toFixed(2)}
+              </span>
+            )}
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                {customDiscountType === 'fixed' ? '₹' : '%'}
+              </span>
+              <input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={customDiscountValue}
+                onChange={(e) => {
+                  const valStr = e.target.value;
+                  setCustomDiscountValue(valStr);
+                  const val = Number(valStr);
+                  if (valStr === '' || isNaN(val) || val <= 0) {
+                    setDiscount(null);
+                  } else {
+                    if (customDiscountType === 'percentage' && val > 100) {
+                      toast.error('Discount percentage cannot exceed 100%');
+                      return;
+                    }
+                    setDiscount({
+                      id: 'custom',
+                      _id: 'custom',
+                      name: `Custom (${customDiscountType === 'fixed' ? '₹' : '%'}${val})`,
+                      type: customDiscountType,
+                      default_value: val,
+                      value: val,
+                    });
+                  }
+                }}
+                className="w-20 pl-6 pr-1.5 py-1 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <select
+              value={customDiscountType}
+              onChange={(e) => {
+                const newType = e.target.value;
+                setCustomDiscountType(newType);
+                const val = Number(customDiscountValue);
+                if (customDiscountValue && !isNaN(val) && val > 0) {
+                  if (newType === 'percentage' && val > 100) {
+                    toast.error('Discount percentage cannot exceed 100%');
+                    return;
+                  }
+                  setDiscount({
+                    id: 'custom',
+                    _id: 'custom',
+                    name: `Custom (${newType === 'fixed' ? '₹' : '%'}${val})`,
+                    type: newType,
+                    default_value: val,
+                    value: val,
+                  });
+                }
+              }}
+              className="px-1 py-1 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              <option value="fixed">₹ (Rs)</option>
+              <option value="percentage">%</option>
+            </select>
+          </div>
         </div>
 
         {/* Taxes summary */}
