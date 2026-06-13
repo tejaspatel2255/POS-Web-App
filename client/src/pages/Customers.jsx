@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, Eye, DollarSign, Calendar, RefreshCw } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Eye, IndianRupee, Calendar, RefreshCw, Search } from 'lucide-react';
 import apiClient from '../api/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import toast from 'react-hot-toast';
@@ -308,7 +308,7 @@ export default function Customers() {
                     </span>
                   </div>
                   <div className="p-2 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-lg">
-                    <DollarSign className="w-4 h-4" />
+                    <IndianRupee className="w-4 h-4" />
                   </div>
                 </div>
 
