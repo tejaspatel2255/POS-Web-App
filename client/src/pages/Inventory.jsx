@@ -168,7 +168,7 @@ export default function Inventory() {
       key: 'valuation',
       render: (row) => (
         <span className="font-extrabold text-slate-800 dark:text-slate-200">
-          ${(row.quantity * row.product?.base_price).toFixed(2)}
+          ₹{(row.quantity * row.product?.base_price).toFixed(2)}
         </span>
       ),
     },

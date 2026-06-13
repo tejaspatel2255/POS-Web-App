@@ -286,7 +286,7 @@ export default function Products() {
     {
       header: 'Retail Price',
       key: 'base_price',
-      render: (row) => <span className="font-extrabold">${row.base_price.toFixed(2)}</span>,
+      render: (row) => <span className="font-extrabold">₹{row.base_price.toFixed(2)}</span>,
     },
     {
       header: 'Stock',
@@ -460,7 +460,7 @@ export default function Products() {
                 </select>
               </FormField>
 
-              <FormField label="Base/Retail Price ($)" required>
+              <FormField label="Base/Retail Price (₹)" required>
                 <input
                   type="number"
                   step="0.01"
@@ -473,7 +473,7 @@ export default function Products() {
                 />
               </FormField>
 
-              <FormField label="Cost Price ($)">
+              <FormField label="Cost Price (₹)">
                 <input
                   type="number"
                   step="0.01"
@@ -549,7 +549,7 @@ export default function Products() {
                     className="flex items-center space-x-2 bg-indigo-50/50 dark:bg-indigo-950/20 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-900 text-xs font-bold"
                   >
                     <span>
-                      {v.name} (Sell: ${v.price.toFixed(2)} | Cost: ${v.cost ? v.cost.toFixed(2) : '0.00'})
+                      {v.name} (Sell: ₹{v.price.toFixed(2)} | Cost: ₹{v.cost ? v.cost.toFixed(2) : '0.00'})
                     </span>
                     <button
                       type="button"
@@ -573,7 +573,7 @@ export default function Products() {
                     className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent text-xs"
                   />
                 </FormField>
-                <FormField label="Retail Price ($)">
+                <FormField label="Retail Price (₹)">
                   <input
                     type="number"
                     step="0.01"
@@ -583,7 +583,7 @@ export default function Products() {
                     className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent text-xs"
                   />
                 </FormField>
-                <FormField label="Cost Price ($)">
+                <FormField label="Cost Price (₹)">
                   <input
                     type="number"
                     step="0.01"

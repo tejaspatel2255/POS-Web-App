@@ -157,7 +157,7 @@ export default function OrdersLog() {
     {
       header: 'Total Paid',
       key: 'total',
-      render: (row) => <span className="font-black">${row.total.toFixed(2)}</span>,
+      render: (row) => <span className="font-black">₹{row.total.toFixed(2)}</span>,
     },
     {
       header: 'Inspect',
@@ -319,9 +319,9 @@ export default function OrdersLog() {
                       <div>
                         <p className="font-bold">{item.name}</p>
                         {item.variant_name && <p className="text-[10px] text-indigo-500">{item.variant_name}</p>}
-                        <p className="text-slate-400 text-[10px] font-semibold">Qty: {item.quantity} x ${item.price.toFixed(2)}</p>
+                        <p className="text-slate-400 text-[10px] font-semibold">Qty: {item.quantity} x ₹{item.price.toFixed(2)}</p>
                       </div>
-                      <span className="font-extrabold">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="font-extrabold">₹{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -377,7 +377,7 @@ export default function OrdersLog() {
                       <span>
                         {item.name} {item.variant_name ? `(${item.variant_name})` : ''} x{item.quantity}
                       </span>
-                      <span>${(item.price * item.quantity).toFixed(2)}</span>
+                      <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -385,23 +385,23 @@ export default function OrdersLog() {
                 <div className="border-t border-dashed pt-2 space-y-1">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>${selectedOrder.subtotal.toFixed(2)}</span>
+                    <span>₹{selectedOrder.subtotal.toFixed(2)}</span>
                   </div>
                   {selectedOrder.discount_amount > 0 && (
                     <div className="flex justify-between text-rose-600">
                       <span>Discount:</span>
-                      <span>-${selectedOrder.discount_amount.toFixed(2)}</span>
+                      <span>-₹{selectedOrder.discount_amount.toFixed(2)}</span>
                     </div>
                   )}
                   {selectedOrder.taxes.map((t, idx) => (
                     <div key={idx} className="flex justify-between">
                       <span>{t.name}:</span>
-                      <span>${t.amount.toFixed(2)}</span>
+                      <span>₹{t.amount.toFixed(2)}</span>
                     </div>
                   ))}
                   <div className="flex justify-between font-black text-sm pt-1.5 border-t border-dashed">
                     <span>Total Paid:</span>
-                    <span>${selectedOrder.total.toFixed(2)}</span>
+                    <span>₹{selectedOrder.total.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -410,7 +410,7 @@ export default function OrdersLog() {
                   {selectedOrder.payments.map((p, idx) => (
                     <div key={idx} className="flex justify-between">
                       <span>{p.method}:</span>
-                      <span>${p.amount.toFixed(2)}</span>
+                      <span>₹{p.amount.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>

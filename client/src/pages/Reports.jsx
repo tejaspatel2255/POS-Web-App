@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
-  DollarSign,
+  IndianRupee,
   Package,
   Calendar,
   Layers,
@@ -78,8 +78,8 @@ export default function Reports() {
           <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.name}</td>
           <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.sku}</td>
           <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">$${(item.price || 0).toFixed(2)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">$${(item.valuationRetail || 0).toFixed(2)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">₹${(item.price || 0).toFixed(2)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">₹${(item.valuationRetail || 0).toFixed(2)}</td>
         </tr>
       `;
     });
@@ -185,11 +185,11 @@ export default function Reports() {
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Sales</p>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
-                  ${salesData.metrics.totalRevenue.toFixed(2)}
+                  ₹{salesData.metrics.totalRevenue.toFixed(2)}
                 </h3>
               </div>
               <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 rounded-xl">
-                <DollarSign className="w-6 h-6" />
+                <IndianRupee className="w-6 h-6" />
               </div>
             </div>
 
@@ -197,7 +197,7 @@ export default function Reports() {
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Net profit</p>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
-                  ${salesData.metrics.grossProfit.toFixed(2)}
+                  ₹{salesData.metrics.grossProfit.toFixed(2)}
                 </h3>
               </div>
               <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-650 rounded-xl">
@@ -221,7 +221,7 @@ export default function Reports() {
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Avg Order Size</p>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
-                  ${salesData.metrics.averageOrderValue.toFixed(2)}
+                  ₹{salesData.metrics.averageOrderValue.toFixed(2)}
                 </h3>
               </div>
               <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 text-purple-600 rounded-xl">
@@ -295,11 +295,11 @@ export default function Reports() {
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valuation (Cost price)</p>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
-                  ${inventoryData.metrics.totalValuationCost.toFixed(2)}
+                  ₹{inventoryData.metrics.totalValuationCost.toFixed(2)}
                 </h3>
               </div>
               <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 text-amber-600 rounded-xl">
-                <DollarSign className="w-6 h-6" />
+                <IndianRupee className="w-6 h-6" />
               </div>
             </div>
 
@@ -307,7 +307,7 @@ export default function Reports() {
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Valuation (Retail price)</p>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
-                  ${inventoryData.metrics.totalValuationRetail.toFixed(2)}
+                  ₹{inventoryData.metrics.totalValuationRetail.toFixed(2)}
                 </h3>
               </div>
               <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 rounded-xl">
@@ -343,10 +343,10 @@ export default function Reports() {
                       <td className="p-3 font-bold">{item.name}</td>
                       <td className="p-3 font-medium">{item.sku}</td>
                       <td className="p-3 text-center font-bold">{item.quantity}</td>
-                      <td className="p-3 text-right">${(item.cost || 0).toFixed(2)}</td>
-                      <td className="p-3 text-right">${item.price.toFixed(2)}</td>
+                      <td className="p-3 text-right">₹{(item.cost || 0).toFixed(2)}</td>
+                      <td className="p-3 text-right">₹{item.price.toFixed(2)}</td>
                       <td className="p-3 text-right font-black text-slate-900 dark:text-slate-50">
-                        ${item.valuationRetail.toFixed(2)}
+                        ₹{item.valuationRetail.toFixed(2)}
                       </td>
                     </tr>
                   ))}

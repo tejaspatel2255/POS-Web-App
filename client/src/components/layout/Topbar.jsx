@@ -123,7 +123,7 @@ export default function Topbar() {
                 : 'Enter the actual final cash count currently in the drawer to close the shift and reconcile sales.'}
             </p>
             <FormField
-              label={!currentShift ? 'Opening Cash ($)' : 'Actual Closing Cash ($)'}
+              label={!currentShift ? 'Opening Cash (₹)' : 'Actual Closing Cash (₹)'}
               required
             >
               <input

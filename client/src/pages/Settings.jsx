@@ -343,7 +343,7 @@ export default function Settings() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <FormField label="Loyalty Points Earn Rate (pts / $ spent)">
+                <FormField label="Loyalty Points Earn Rate (pts / ₹ spent)">
                   <input
                     type="number"
                     step="0.1"
@@ -353,7 +353,7 @@ export default function Settings() {
                     className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-transparent text-sm disabled:opacity-50"
                   />
                 </FormField>
-                <FormField label="Loyalty Points Redeem value ($ / point)">
+                <FormField label="Loyalty Points Redeem value (₹ / point)">
                   <input
                     type="number"
                     step="0.001"
@@ -500,7 +500,7 @@ export default function Settings() {
                   key: 'default_value',
                   render: (row) => (
                     <span className="font-bold">
-                      {row.type === 'percentage' ? `${row.default_value}%` : `$${row.default_value}`}
+                      {row.type === 'percentage' ? `${row.default_value}%` : `₹${row.default_value}`}
                     </span>
                   ),
                 },
@@ -566,9 +566,9 @@ export default function Settings() {
                 { header: 'Cashier Staff', key: 'cashier_id.name', render: (row) => <span className="font-bold">{row.cashier_id?.name || 'Unknown'}</span> },
                 { header: 'Opened At', key: 'start_time', render: (row) => <span>{new Date(row.start_time).toLocaleString()}</span> },
                 { header: 'Closed At', key: 'end_time', render: (row) => <span>{row.end_time ? new Date(row.end_time).toLocaleString() : <span className="text-emerald-500 font-bold">Active Open</span>}</span> },
-                { header: 'Opening Cash', key: 'opening_cash', render: (row) => <span>${row.opening_cash.toFixed(2)}</span> },
-                { header: 'Expected Closing', key: 'closing_cash', render: (row) => <span>{row.closing_cash !== undefined ? `$${row.closing_cash.toFixed(2)}` : 'N/A'}</span> },
-                { header: 'Actual Closing', key: 'actual_closing_cash', render: (row) => <span>{row.actual_closing_cash !== undefined ? `$${row.actual_closing_cash.toFixed(2)}` : 'N/A'}</span> },
+                { header: 'Opening Cash', key: 'opening_cash', render: (row) => <span>₹{row.opening_cash.toFixed(2)}</span> },
+                { header: 'Expected Closing', key: 'closing_cash', render: (row) => <span>{row.closing_cash !== undefined ? `₹${row.closing_cash.toFixed(2)}` : 'N/A'}</span> },
+                { header: 'Actual Closing', key: 'actual_closing_cash', render: (row) => <span>{row.actual_closing_cash !== undefined ? `₹${row.actual_closing_cash.toFixed(2)}` : 'N/A'}</span> },
                 {
                   header: 'Discrepancy',
                   key: 'discrepancy',
@@ -577,7 +577,7 @@ export default function Settings() {
                     const diff = row.actual_closing_cash - row.closing_cash;
                     return (
                       <span className={`font-black ${diff === 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {diff === 0 ? '$0.00' : diff > 0 ? `+$${diff.toFixed(2)}` : `-$${Math.abs(diff).toFixed(2)}`}
+                        {diff === 0 ? '₹0.00' : diff > 0 ? `+₹${diff.toFixed(2)}` : `-₹${Math.abs(diff).toFixed(2)}`}
                       </span>
                     );
                   },
@@ -704,7 +704,7 @@ export default function Settings() {
                     className="w-full h-11 px-3 rounded-xl border border-slate-200 bg-transparent text-sm focus:outline-none"
                   >
                     <option value="percentage">Percentage (%)</option>
-                    <option value="fixed">Fixed Cash Amount ($)</option>
+                    <option value="fixed">Fixed Cash Amount (₹)</option>
                   </select>
                 </FormField>
               </>

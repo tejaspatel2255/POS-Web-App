@@ -448,7 +448,7 @@ export default function PosTerminal() {
 
                     <div className="mt-4 flex items-center justify-between">
                       <span className="text-base font-extrabold text-slate-900 dark:text-slate-50">
-                        ${p.base_price.toFixed(2)}
+                        ₹{p.base_price.toFixed(2)}
                       </span>
                       {isOutOfStock && (
                         <span className="text-xs font-black text-rose-600">OUT OF STOCK</span>
@@ -540,7 +540,7 @@ export default function PosTerminal() {
                     <p className="text-[10px] text-indigo-500 font-bold">{item.variantName}</p>
                   )}
                   <p className="text-xs font-bold text-slate-900 dark:text-slate-100 mt-1">
-                    ${(item.price * item.quantity).toFixed(2)}
+                    ₹{(item.price * item.quantity).toFixed(2)}
                   </p>
                 </div>
 
@@ -583,7 +583,7 @@ export default function PosTerminal() {
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-2 shrink-0">
           <div className="flex justify-between text-xs text-slate-500 font-semibold">
             <span>Subtotal</span>
-            <span>${totals.subtotal.toFixed(2)}</span>
+            <span>₹{totals.subtotal.toFixed(2)}</span>
           </div>
 
           {/* Discount Trigger */}
@@ -596,9 +596,9 @@ export default function PosTerminal() {
               {orderDiscount ? `Discount (${orderDiscount.name})` : 'Apply Discount'}
             </button>
             {totals.discountAmount > 0 ? (
-              <span className="text-rose-500 font-bold">-${totals.discountAmount.toFixed(2)}</span>
+              <span className="text-rose-500 font-bold">-₹{totals.discountAmount.toFixed(2)}</span>
             ) : (
-              <span>$0.00</span>
+              <span>₹0.00</span>
             )}
           </div>
 
@@ -606,14 +606,14 @@ export default function PosTerminal() {
           {totals.taxes.map((tax, idx) => (
             <div key={idx} className="flex justify-between text-xs text-slate-500 font-semibold">
               <span>{tax.name}</span>
-              <span>${tax.amount.toFixed(2)}</span>
+              <span>₹{tax.amount.toFixed(2)}</span>
             </div>
           ))}
 
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end">
             <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Total Payable</span>
             <span className="text-xl font-black text-slate-900 dark:text-slate-50">
-              ${totals.total.toFixed(2)}
+              ₹{totals.total.toFixed(2)}
             </span>
           </div>
 
@@ -657,7 +657,7 @@ export default function PosTerminal() {
                 className="w-full flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-indigo-50/20 hover:border-indigo-550 transition-all text-left text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer"
               >
                 <span>{v.name}</span>
-                <span className="text-indigo-600">${v.price.toFixed(2)}</span>
+                <span className="text-indigo-600">₹{v.price.toFixed(2)}</span>
               </button>
             ))}
           </div>
@@ -852,7 +852,7 @@ export default function PosTerminal() {
                   )}
                 </div>
                 <span>
-                  {d.type === 'percentage' ? `${d.default_value}%` : `$${d.default_value}`}
+                  {d.type === 'percentage' ? `${d.default_value}%` : `₹${d.default_value}`}
                 </span>
               </button>
             ))}
@@ -874,23 +874,23 @@ export default function PosTerminal() {
               <div className="space-y-2 text-xs text-slate-500">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">${totals.subtotal.toFixed(2)}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">₹{totals.subtotal.toFixed(2)}</span>
                 </div>
                 {totals.discountAmount > 0 && (
                   <div className="flex justify-between text-rose-500">
                     <span>Discount</span>
-                    <span className="font-bold">-${totals.discountAmount.toFixed(2)}</span>
+                    <span className="font-bold">-₹{totals.discountAmount.toFixed(2)}</span>
                   </div>
                 )}
                 {totals.taxes.map((t, idx) => (
                   <div key={idx} className="flex justify-between">
                     <span>{t.name}</span>
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">${t.amount.toFixed(2)}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">₹{t.amount.toFixed(2)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-sm font-black text-slate-900 dark:text-slate-50 pt-2 border-t border-slate-200 dark:border-slate-800">
                   <span>Total Due</span>
-                  <span>${totals.total.toFixed(2)}</span>
+                  <span>₹{totals.total.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -902,7 +902,7 @@ export default function PosTerminal() {
                     Loyalty Reward Points
                   </p>
                   <p className="text-[10px] text-slate-400">
-                    Points available: {customer.loyalty_points} (Value: ${(customer.loyalty_points * loyaltyRules.redeem).toFixed(2)})
+                    Points available: {customer.loyalty_points} (Value: ₹{(customer.loyalty_points * loyaltyRules.redeem).toFixed(2)})
                   </p>
                   
                   {redeemedPoints === 0 ? (
@@ -916,7 +916,7 @@ export default function PosTerminal() {
                         const updated = [...checkoutPayments];
                         updated[0].amount = Math.max(0, totals.total - val);
                         setCheckoutPayments(updated);
-                        toast.success(`Redeemed ${points} points for $${val.toFixed(2)} discount`);
+                        toast.success(`Redeemed ${points} points for ₹${val.toFixed(2)} discount`);
                       }}
                       className="!h-9 text-xs rounded-xl w-full"
                     >
@@ -924,7 +924,7 @@ export default function PosTerminal() {
                     </Button>
                   ) : (
                     <div className="flex items-center justify-between p-2.5 bg-indigo-50/30 rounded-xl text-xs font-bold text-indigo-650 border border-indigo-100">
-                      <span>Redeemed {redeemedPoints} pts (-${(redeemedPoints * loyaltyRules.redeem).toFixed(2)})</span>
+                      <span>Redeemed {redeemedPoints} pts (-₹{(redeemedPoints * loyaltyRules.redeem).toFixed(2)})</span>
                       <button
                         onClick={() => {
                           setRedeemedPoints(0);
@@ -962,7 +962,7 @@ export default function PosTerminal() {
                       </select>
                     </FormField>
 
-                    <FormField label="Amount ($)" className="w-28">
+                    <FormField label="Amount (₹)" className="w-28">
                       <input
                         type="number"
                         step="0.01"
@@ -996,7 +996,7 @@ export default function PosTerminal() {
               {/* Cash Change Drawer calculation */}
               {checkoutPayments.some((p) => p.method.toLowerCase() === 'cash') && (
                 <div className="pt-2">
-                  <FormField label="Cash Amount Tendered ($)" required>
+                  <FormField label="Cash Amount Tendered (₹)" required>
                     <input
                       type="number"
                       step="0.01"
@@ -1011,7 +1011,7 @@ export default function PosTerminal() {
                   {Number(cashTendered) > allocatedCashPayment && (
                     <div className="mt-2.5 p-3.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-900/30 font-bold text-xs flex justify-between items-center">
                       <span>Change to Return</span>
-                      <span className="text-sm font-black">${cashChange.toFixed(2)}</span>
+                      <span className="text-sm font-black">₹{cashChange.toFixed(2)}</span>
                     </div>
                   )}
                 </div>
@@ -1064,7 +1064,7 @@ export default function PosTerminal() {
                   <span>
                     {item.name} {item.variant_name ? `(${item.variant_name})` : ''} x{item.quantity}
                   </span>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+                  <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -1072,23 +1072,23 @@ export default function PosTerminal() {
             <div className="border-t border-dashed pt-2 space-y-1">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
-                <span>${lastCreatedOrder.subtotal.toFixed(2)}</span>
+                <span>₹{lastCreatedOrder.subtotal.toFixed(2)}</span>
               </div>
               {lastCreatedOrder.discount_amount > 0 && (
                 <div className="flex justify-between text-rose-600">
                   <span>Discount:</span>
-                  <span>-${lastCreatedOrder.discount_amount.toFixed(2)}</span>
+                  <span>-₹{lastCreatedOrder.discount_amount.toFixed(2)}</span>
                 </div>
               )}
               {lastCreatedOrder.taxes.map((t, idx) => (
                 <div key={idx} className="flex justify-between">
                   <span>{t.name}:</span>
-                  <span>${t.amount.toFixed(2)}</span>
+                  <span>₹{t.amount.toFixed(2)}</span>
                 </div>
               ))}
               <div className="flex justify-between font-black text-sm pt-1.5 border-t border-dashed">
                 <span>Total Amount:</span>
-                <span>${lastCreatedOrder.total.toFixed(2)}</span>
+                <span>₹{lastCreatedOrder.total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -1097,7 +1097,7 @@ export default function PosTerminal() {
               {lastCreatedOrder.payments.map((p, idx) => (
                 <div key={idx} className="flex justify-between">
                   <span>{p.method}:</span>
-                  <span>${p.amount.toFixed(2)}</span>
+                  <span>₹{p.amount.toFixed(2)}</span>
                 </div>
               ))}
               {lastCreatedOrder.customer_id && (

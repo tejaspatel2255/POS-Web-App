@@ -114,7 +114,7 @@ export const useShiftStore = create((set, get) => ({
       if (discrepancy === 0) {
         toast.success('Shift closed successfully! Drawer balanced.');
       } else {
-        toast(`Shift closed with discrepancy of $${discrepancy.toFixed(2)}`, {
+        toast(`Shift closed with discrepancy of ₹${discrepancy.toFixed(2)}`, {
           icon: '⚠️'
         });
       }

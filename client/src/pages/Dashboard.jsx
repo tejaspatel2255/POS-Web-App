@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
   ShoppingCart,
-  DollarSign,
+  IndianRupee,
   Package,
   ArrowRight,
   RefreshCw,
@@ -64,11 +64,11 @@ export default function Dashboard() {
           <div>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
             <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
-              ${(metrics.totalRevenue || 0).toFixed(2)}
+              ₹{(metrics.totalRevenue || 0).toFixed(2)}
             </h3>
           </div>
           <div className="p-3.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 rounded-xl">
-            <DollarSign className="w-6 h-6" />
+            <IndianRupee className="w-6 h-6" />
           </div>
         </div>
 
@@ -90,7 +90,7 @@ export default function Dashboard() {
           <div>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Avg Order Value</p>
             <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
-              ${(metrics.averageOrderValue || 0).toFixed(2)}
+              ₹{(metrics.averageOrderValue || 0).toFixed(2)}
             </h3>
           </div>
           <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-650 dark:text-emerald-400 rounded-xl">
@@ -103,7 +103,7 @@ export default function Dashboard() {
           <div>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Profit</p>
             <h3 className="text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
-              ${(metrics.grossProfit || 0).toFixed(2)}
+              ₹{(metrics.grossProfit || 0).toFixed(2)}
             </h3>
           </div>
           <div className="p-3.5 bg-purple-50 dark:bg-purple-950/40 text-purple-650 dark:text-purple-400 rounded-xl">
@@ -158,7 +158,7 @@ export default function Dashboard() {
                     <p className="text-xs text-slate-400 font-medium">{p.quantity} units sold</p>
                   </div>
                   <span className="text-sm font-black text-slate-900 dark:text-slate-100">
-                    ${p.revenue.toFixed(2)}
+                    ₹{p.revenue.toFixed(2)}
                   </span>
                 </div>
               ))
@@ -205,7 +205,7 @@ export default function Dashboard() {
                     <td className="py-3 font-semibold">{order.cashier_id?.name}</td>
                     <td className="py-3 font-medium">{new Date(order.createdAt).toLocaleDateString()}</td>
                     <td className="py-3 font-extrabold text-right text-slate-900 dark:text-slate-100">
-                      ${order.total.toFixed(2)}
+                      ₹{order.total.toFixed(2)}
                     </td>
                   </tr>
                 ))
