@@ -196,38 +196,54 @@ export default function PosTerminal() {
   };
 
   const addSplitPayment = () => {
-    // Distribute remaining amount
+    const targetAmount = Math.max(0, totals.total - (redeemedPoints * loyaltyRules.redeem));
     const allocated = checkoutPayments.reduce((sum, p) => sum + p.amount, 0);
-    const remaining = Math.max(0, totals.total - allocated);
+    const remaining = Math.max(0, targetAmount - allocated);
+    if (remaining <= 0.01) return;
     const defaultMethod = paymentMethods.length > 0 ? paymentMethods[0].name : 'Cash';
 
     setCheckoutPayments([...checkoutPayments, { method: defaultMethod, amount: remaining }]);
   };
 
   const removeSplitPayment = (index) => {
+    const targetAmount = Math.max(0, totals.total - (redeemedPoints * loyaltyRules.redeem));
     const updated = checkoutPayments.filter((_, idx) => idx !== index);
+    if (updated.length > 0) {
+      const currentSum = updated.reduce((sum, p) => sum + p.amount, 0);
+      updated[0].amount = updated[0].amount + (targetAmount - currentSum);
+      if (updated[0].method.toLowerCase() === 'cash') {
+        setCashTendered(String(updated[0].amount));
+      }
+    }
     setCheckoutPayments(updated);
   };
 
   const handlePaymentMethodChange = (index, field, value) => {
     const updated = [...checkoutPayments];
     if (field === 'amount') {
-      updated[index][field] = Number(value);
+      updated[index][field] = value === '' ? 0 : Number(value);
     } else {
       updated[index][field] = value;
+      if (value.toLowerCase() === 'cash') {
+        setCashTendered(String(updated[index].amount));
+      }
     }
     setCheckoutPayments(updated);
   };
 
-  const handleCompleteSale = async () => {
-    // Verify payments covers total
-    const totalPaid = checkoutPayments.reduce((sum, p) => sum + p.amount, 0);
-    
-    // If Cash is the only payment method, allow tendered amount to exceed total (for change calculation)
-    const isSingleCash = checkoutPayments.length === 1 && checkoutPayments[0].method.toLowerCase() === 'cash';
+  // Computed checkout variables
+  const targetAmount = Math.max(0, totals.total - (redeemedPoints * loyaltyRules.redeem));
+  const paymentSum = checkoutPayments.reduce((sum, p) => sum + p.amount, 0);
+  const remaining = Math.max(0, targetAmount - paymentSum);
+  const hasCash = checkoutPayments.some((p) => p.method.toLowerCase() === 'cash');
+  const cashPaymentAmount = checkoutPayments.filter((p) => p.method.toLowerCase() === 'cash').reduce((sum, p) => sum + p.amount, 0);
+  const isUnderpaid = hasCash && Number(cashTendered) < cashPaymentAmount;
+  const isReadyToConfirm = Math.abs(paymentSum - targetAmount) < 0.01 && !isUnderpaid && cartItems.length > 0;
+  const cashChange = hasCash ? Math.max(0, Number(cashTendered) - cashPaymentAmount) : 0;
 
-    if (!isSingleCash && totalPaid < totals.total) {
-      toast.error('Total payment amount does not cover order total');
+  const handleCompleteSale = async () => {
+    if (!isReadyToConfirm) {
+      toast.error('Payment configuration is invalid or incomplete');
       return;
     }
 
@@ -323,9 +339,6 @@ export default function PosTerminal() {
     }
   };
 
-  // Calculate change for Cash tendered
-  const allocatedCashPayment = checkoutPayments.find((p) => p.method.toLowerCase() === 'cash')?.amount || 0;
-  const cashChange = Math.max(0, Number(cashTendered) - allocatedCashPayment);
 
   // Render POS
   return (
@@ -952,7 +965,7 @@ export default function PosTerminal() {
                       <select
                         value={p.method}
                         onChange={(e) => handlePaymentMethodChange(idx, 'method', e.target.value)}
-                        className="w-full h-11 px-3 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full min-w-[120px] h-11 px-3 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 capitalize"
                       >
                         {paymentMethods.map((m) => (
                           <option key={m._id} value={m.name}>
@@ -967,9 +980,10 @@ export default function PosTerminal() {
                         type="number"
                         step="0.01"
                         min="0"
-                        value={p.amount}
+                        value={p.amount === 0 ? '' : p.amount}
+                        readOnly={checkoutPayments.length === 1}
                         onChange={(e) => handlePaymentMethodChange(idx, 'amount', e.target.value)}
-                        className="w-full h-11 px-3 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className={`w-full h-11 px-3 rounded-xl border border-slate-202 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${checkoutPayments.length === 1 ? 'bg-slate-100 dark:bg-slate-800/40 opacity-70 cursor-not-allowed' : ''}`}
                       />
                     </FormField>
 
@@ -985,16 +999,31 @@ export default function PosTerminal() {
                 ))}
               </div>
 
+              {/* Remaining indicator */}
+              {remaining > 0.01 && (
+                <p className="text-xs text-amber-600 mt-1 font-bold">
+                  Remaining to allocate: ₹{remaining.toFixed(2)}
+                </p>
+              )}
+
+              {/* Overallocated indicator */}
+              {paymentSum > targetAmount && (
+                <p className="text-xs text-rose-500 mt-1 font-bold">
+                  Overallocated by: ₹{(paymentSum - targetAmount).toFixed(2)}
+                </p>
+              )}
+
               {/* Add Split button */}
               <button
                 onClick={addSplitPayment}
-                className="inline-flex items-center text-xs font-bold text-indigo-650 hover:text-indigo-700 cursor-pointer"
+                disabled={remaining <= 0.01}
+                className="inline-flex items-center text-xs font-bold text-indigo-650 hover:text-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" /> Add Split Payment Method
               </button>
 
               {/* Cash Change Drawer calculation */}
-              {checkoutPayments.some((p) => p.method.toLowerCase() === 'cash') && (
+              {hasCash && (
                 <div className="pt-2">
                   <FormField label="Cash Amount Tendered (₹)" required>
                     <input
@@ -1004,12 +1033,22 @@ export default function PosTerminal() {
                       value={cashTendered}
                       onChange={(e) => setCashTendered(e.target.value)}
                       placeholder="0.00"
-                      className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className={`w-full h-11 px-4 rounded-xl border bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 ${
+                        isUnderpaid ? 'border-rose-400 focus:ring-rose-400' : 'border-slate-200 dark:border-slate-800 focus:ring-indigo-500'
+                      }`}
                     />
                   </FormField>
                   
-                  {Number(cashTendered) > allocatedCashPayment && (
-                    <div className="mt-2.5 p-3.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-900/30 font-bold text-xs flex justify-between items-center">
+                  {isUnderpaid ? (
+                    <p className="text-xs text-rose-500 mt-2 font-bold">
+                      Insufficient amount (Cash portion is ₹{cashPaymentAmount.toFixed(2)})
+                    </p>
+                  ) : (
+                    <div className={`mt-2.5 p-3.5 rounded-xl border font-bold text-xs flex justify-between items-center ${
+                      cashChange > 0
+                        ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30'
+                        : 'bg-slate-50 dark:bg-slate-900/20 text-slate-500 border-slate-100 dark:border-slate-800'
+                    }`}>
                       <span>Change to Return</span>
                       <span className="text-sm font-black">₹{cashChange.toFixed(2)}</span>
                     </div>
@@ -1028,6 +1067,7 @@ export default function PosTerminal() {
                 <Button
                   variant="primary"
                   onClick={handleCompleteSale}
+                  disabled={!isReadyToConfirm}
                   className="flex-1 font-bold"
                 >
                   Confirm Payment
