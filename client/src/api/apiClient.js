@@ -128,7 +128,7 @@ const apiClient = {
           .select('*')
           .eq('outlet_id', outletId);
         if (error) throw error;
-        const mapped = data.map(item => ({ ...item, _id: item.id }));
+        const mapped = data.map(item => ({ ...item, _id: item.id, label: item.name }));
         return { data: mapped };
       }
 
@@ -159,13 +159,21 @@ const apiClient = {
 
       // 10. SETTINGS
       if (url.startsWith('/api/settings')) {
-        const { data, error } = await supabase
+        const { data: settingsData, error: settingsError } = await supabase
           .from('settings')
           .select('*')
           .eq('outlet_id', outletId)
           .maybeSingle();
-        if (error) throw error;
-        return { data: { settings: data } };
+        if (settingsError) throw settingsError;
+
+        const { data: outletData, error: outletError } = await supabase
+          .from('outlets')
+          .select('*')
+          .eq('id', outletId)
+          .maybeSingle();
+        if (outletError) throw outletError;
+
+        return { data: { settings: settingsData, outlet: outletData } };
       }
 
       // 11. INVENTORY
@@ -181,7 +189,10 @@ const apiClient = {
             ...item,
             _id: item.id,
             product_id: item.product_id ? { ...item.product_id, _id: item.product_id.id } : null,
-            performed_by: item.performed_by ? { ...item.performed_by, _id: item.performed_by.id } : null
+            performed_by: item.performed_by ? { ...item.performed_by, _id: item.performed_by.id } : null,
+            user_id: item.performed_by ? { ...item.performed_by, _id: item.performed_by.id } : null,
+            change: item.quantity,
+            timestamp: item.created_at
           }));
           return { data: mapped };
         } else {
@@ -192,9 +203,13 @@ const apiClient = {
             .eq('outlet_id', outletId);
           if (error) throw error;
           const mapped = data.map(item => ({
-            ...item,
-            _id: item.id,
-            category_id: item.category_id ? { ...item.category_id, _id: item.category_id.id } : null
+            product: {
+              ...item,
+              _id: item.id,
+              category_id: item.category_id ? { ...item.category_id, _id: item.category_id.id } : null
+            },
+            quantity: item.stock,
+            isLowStock: item.stock <= item.stock_threshold
           }));
           return { data: mapped };
         }
@@ -212,6 +227,7 @@ const apiClient = {
         const mapped = data.map(o => ({
           ...o,
           _id: o.id,
+          createdAt: o.created_at,
           customer_id: o.customer_id ? { ...o.customer_id, _id: o.customer_id.id } : null,
           cashier_id: o.cashier_id ? { ...o.cashier_id, _id: o.cashier_id.id } : null,
           items: Array.isArray(o.items) ? o.items : JSON.parse(o.items || '[]'),
@@ -251,105 +267,126 @@ const apiClient = {
 
       // 14. REPORTS
       if (url.startsWith('/api/reports')) {
-        if (url.includes('/valuation')) {
+        if (url.includes('/sales')) {
+          const { data: ordersData, error: ordersError } = await supabase
+            .from('orders')
+            .select('*, customer_id(*), cashier_id(*)')
+            .eq('outlet_id', outletId)
+            .order('created_at', { ascending: false });
+          if (ordersError) throw ordersError;
+
+          const completedOrders = ordersData.filter(o => o.status === 'completed');
+          let totalRevenue = 0;
+          let totalCost = 0;
+          
+          const dailyMap = {};
+          const productMap = {};
+
+          completedOrders.forEach(o => {
+            totalRevenue += Number(o.total);
+            
+            const dateStr = new Date(o.created_at).toLocaleDateString();
+            if (!dailyMap[dateStr]) dailyMap[dateStr] = { sales: 0, profit: 0 };
+            dailyMap[dateStr].sales += Number(o.total);
+
+            const items = Array.isArray(o.items) ? o.items : JSON.parse(o.items || '[]');
+            items.forEach(item => {
+              const qty = Number(item.quantity || 0);
+              const price = Number(item.price || 0);
+              const cost = Number(item.cost || 0);
+              
+              totalCost += cost * qty;
+              
+              if (!productMap[item.name]) {
+                productMap[item.name] = { name: item.name, quantity: 0, revenue: 0 };
+              }
+              productMap[item.name].quantity += qty;
+              productMap[item.name].revenue += price * qty;
+
+              const itemProfit = (price - cost) * qty;
+              dailyMap[dateStr].profit += itemProfit;
+            });
+          });
+
+          const orderCount = completedOrders.length;
+          const averageOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
+          const grossProfit = totalRevenue - totalCost;
+
+          const chartData = Object.keys(dailyMap).map(d => ({
+            date: d,
+            sales: Number(dailyMap[d].sales.toFixed(2)),
+            profit: Number(dailyMap[d].profit.toFixed(2))
+          })).reverse();
+
+          const topProducts = Object.values(productMap)
+            .sort((a, b) => b.quantity - a.quantity)
+            .slice(0, 5);
+
+          const mappedOrders = ordersData.map(o => ({
+            ...o,
+            _id: o.id,
+            createdAt: o.created_at,
+            customer_id: o.customer_id ? { ...o.customer_id, _id: o.customer_id.id } : null,
+            cashier_id: o.cashier_id ? { ...o.cashier_id, _id: o.cashier_id.id } : null,
+            items: Array.isArray(o.items) ? o.items : JSON.parse(o.items || '[]'),
+            payments: Array.isArray(o.payments) ? o.payments : JSON.parse(o.payments || '[]'),
+            discounts: Array.isArray(o.discounts) ? o.discounts : JSON.parse(o.discounts || '[]'),
+            taxes: Array.isArray(o.taxes) ? o.taxes : JSON.parse(o.taxes || '[]')
+          }));
+
+          return {
+            data: {
+              metrics: {
+                totalRevenue: Number(totalRevenue.toFixed(2)),
+                grossProfit: Number(grossProfit.toFixed(2)),
+                orderCount,
+                averageOrderValue: Number(averageOrderValue.toFixed(2))
+              },
+              chartData,
+              topProducts,
+              orders: mappedOrders
+            }
+          };
+        } else if (url.includes('/inventory') || url.includes('/valuation')) {
           const { data, error } = await supabase
             .from('products')
             .select('*, category_id(*)')
             .eq('outlet_id', outletId);
           if (error) throw error;
-          
-          let totalStockValuationRetail = 0;
-          let totalStockValuationCost = 0;
-          const productList = data.map(p => {
+
+          let totalValuationRetail = 0;
+          let totalValuationCost = 0;
+          let lowStockCount = 0;
+
+          const items = data.map(p => {
             const retailVal = p.stock * p.base_price;
             const costVal = p.stock * p.cost_price;
-            totalStockValuationRetail += retailVal;
-            totalStockValuationCost += costVal;
+            totalValuationRetail += retailVal;
+            totalValuationCost += costVal;
+            if (p.stock <= p.stock_threshold) {
+              lowStockCount++;
+            }
 
             return {
-              _id: p.id,
               name: p.name,
               sku: p.sku,
-              category: p.category_id?.name || 'Uncategorized',
-              stock: p.stock,
-              basePrice: p.base_price,
-              costPrice: p.cost_price,
-              retailValue: retailVal,
-              costValue: costVal
+              quantity: p.stock,
+              price: p.base_price,
+              cost: p.cost_price,
+              valuationRetail: retailVal,
+              valuationCost: costVal
             };
           });
 
           return {
             data: {
-              totalStockValuationRetail,
-              totalStockValuationCost,
-              productList
-            }
-          };
-        } else if (url.includes('/dashboard')) {
-          // Dashboard Analytics (Sales numbers, Daily trends, Top Products)
-          const { data: orders, error: ordersError } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('outlet_id', outletId)
-            .eq('status', 'completed');
-          if (ordersError) throw ordersError;
-
-          let totalSales = 0;
-          let totalCost = 0;
-          let orderCount = orders ? orders.length : 0;
-          
-          // Map daily sales
-          const dailyMap = {};
-          const productMap = {};
-
-          if (orders) {
-            orders.forEach(o => {
-              totalSales += Number(o.total);
-              
-              const dateStr = new Date(o.created_at).toLocaleDateString();
-              if (!dailyMap[dateStr]) dailyMap[dateStr] = { sales: 0, profit: 0, count: 0 };
-              dailyMap[dateStr].sales += Number(o.total);
-              dailyMap[dateStr].count += 1;
-
-              const items = Array.isArray(o.items) ? o.items : JSON.parse(o.items || '[]');
-              items.forEach(item => {
-                totalCost += Number(item.cost || 0) * item.quantity;
-                
-                // Track top selling products
-                if (!productMap[item.name]) productMap[item.name] = { name: item.name, value: 0 };
-                productMap[item.name].value += item.quantity;
-
-                // Profit check
-                const itemProfit = (Number(item.price) - Number(item.cost || 0)) * item.quantity;
-                dailyMap[dateStr].profit += itemProfit;
-              });
-            });
-          }
-
-          const averageOrder = orderCount > 0 ? totalSales / orderCount : 0;
-          const netProfit = totalSales - totalCost;
-
-          // Format daily trends list
-          const salesTrends = Object.keys(dailyMap).map(d => ({
-            date: d,
-            revenue: Number(dailyMap[d].sales.toFixed(2)),
-            profit: Number(dailyMap[d].profit.toFixed(2))
-          })).slice(-7); // Last 7 days
-
-          // Format top selling products
-          const topProducts = Object.values(productMap)
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 5);
-
-          return {
-            data: {
-              totalSales: Number(totalSales.toFixed(2)),
-              netProfit: Number(netProfit.toFixed(2)),
-              orderCount,
-              averageOrder: Number(averageOrder.toFixed(2)),
-              salesTrends,
-              topProducts
+              metrics: {
+                totalItems: data.length,
+                lowStockCount,
+                totalValuationCost,
+                totalValuationRetail
+              },
+              items
             }
           };
         }
@@ -456,7 +493,7 @@ const apiClient = {
       // 2. CATEGORIES
       if (url.startsWith('/api/categories')) {
         if (url.includes('/reorder')) {
-          const orderList = payload.categories;
+          const orderList = payload.categories || payload.orders;
           for (const item of orderList) {
             await supabase
               .from('categories')
@@ -563,12 +600,14 @@ const apiClient = {
       // 10. INVENTORY LOGS & ACTIONS
       if (url.startsWith('/api/inventory')) {
         if (url.includes('/adjust')) {
-          const { product_id, type, quantity, reason } = payload;
+          const { product_id, reason } = payload;
+          const changeVal = Number(payload.change !== undefined ? payload.change : (payload.quantity !== undefined ? (payload.type === 'out' ? -payload.quantity : payload.quantity) : 0));
+          const qty = Math.abs(changeVal);
+          const type = changeVal >= 0 ? 'in' : 'out';
           const { data: prod } = await supabase.from('products').select('stock').eq('id', product_id).single();
           
           const currentStock = Number(prod.stock);
-          const diff = type === 'in' ? Number(quantity) : -Number(quantity);
-          const newStock = Math.max(0, currentStock + diff);
+          const newStock = Math.max(0, currentStock + changeVal);
 
           await supabase.from('products').update({ stock: newStock }).eq('id', product_id);
 
@@ -577,7 +616,7 @@ const apiClient = {
             .insert({
               product_id,
               type,
-              quantity,
+              quantity: changeVal,
               reason,
               performed_by: user.id,
               outlet_id: outletId
@@ -588,7 +627,9 @@ const apiClient = {
           if (error) throw error;
           return { data: { ...log, _id: log.id } };
         } else if (url.includes('/transfer')) {
-          const { product_id, source_outlet_id, target_outlet_id, quantity } = payload;
+          const { product_id, quantity } = payload;
+          const source_outlet_id = payload.source_outlet_id || payload.from_outlet_id;
+          const target_outlet_id = payload.target_outlet_id || payload.to_outlet_id;
           
           const { data: sourceProd } = await supabase.from('products').select('*').eq('id', product_id).single();
           await supabase.from('products').update({ stock: Math.max(0, Number(sourceProd.stock) - Number(quantity)) }).eq('id', product_id);
@@ -802,7 +843,7 @@ const apiClient = {
             await supabase.from('inventory_logs').insert({
               product_id: item.product_id,
               type: 'out',
-              quantity: item.quantity,
+              quantity: -Number(item.quantity),
               reason: `Sale Order #${data.id.substring(0, 8)}`,
               performed_by: user.id,
               outlet_id: outletId
@@ -825,7 +866,7 @@ const apiClient = {
           }
         }
 
-        return { data: { ...data, _id: data.id } };
+        return { data: { ...data, _id: data.id, createdAt: data.created_at } };
       }
 
       throw new Error(`Endpoint POST ${url} not configured client-side.`);
@@ -957,16 +998,60 @@ const apiClient = {
       }
 
       // 10. SETTINGS
+      if (url.startsWith('/api/settings/profile')) {
+        const updateData = {
+          name: payload.name,
+          address: payload.address,
+          receipt_footer: payload.receiptSettings?.footerText || '',
+        };
+        const { data, error } = await supabase
+          .from('outlets')
+          .update(updateData)
+          .eq('id', outletId)
+          .select()
+          .single();
+        if (error) throw error;
+        return { data: { outlet: data } };
+      }
+
       if (url.startsWith('/api/settings')) {
         const { data: existing } = await supabase.from('settings').select('id').eq('outlet_id', outletId).maybeSingle();
         if (existing) {
-          const { data, error } = await supabase.from('settings').update(payload).eq('id', existing.id).select().single();
+          const { data, error } = await supabase.from('settings').update(payload.settings || payload).eq('id', existing.id).select().single();
           if (error) throw error;
           return { data: { settings: data } };
         } else {
-          const { data, error } = await supabase.from('settings').insert({ ...payload, outlet_id: outletId }).select().single();
+          const { data, error } = await supabase.from('settings').insert({ ...(payload.settings || payload), outlet_id: outletId }).select().single();
           if (error) throw error;
           return { data: { settings: data } };
+        }
+      }
+
+      // 12. ORDERS void / refund
+      if (url.startsWith('/api/orders')) {
+        const orderId = extractId(url, '/api/orders/');
+        if (url.includes('/void') && orderId) {
+          const { data: order } = await supabase.from('orders').select('*').eq('id', orderId).single();
+          await supabase.from('orders').update({ status: 'voided' }).eq('id', orderId);
+
+          const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]');
+          for (const item of items) {
+            const { data: prod } = await supabase.from('products').select('stock').eq('id', item.product_id).single();
+            if (prod) {
+              const newStock = Number(prod.stock) + Number(item.quantity);
+              await supabase.from('products').update({ stock: newStock }).eq('id', item.product_id);
+
+              await supabase.from('inventory_logs').insert({
+                product_id: item.product_id,
+                type: 'in',
+                quantity: item.quantity,
+                reason: `Void for Order #${orderId.substring(0, 8)}`,
+                performed_by: user.id,
+                outlet_id: outletId
+              });
+            }
+          }
+          return { data: { ...order, status: 'voided', createdAt: order.created_at } };
         }
       }
 

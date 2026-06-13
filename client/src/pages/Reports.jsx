@@ -9,6 +9,7 @@ import {
   BarChart3,
   Printer,
   RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   LineChart,
