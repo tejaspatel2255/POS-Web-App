@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { Lock, Mail, User, ShieldAlert } from 'lucide-react';
+import { Lock, Mail, User, ShieldAlert, CheckCircle } from 'lucide-react';
 import Button from '../components/ui/Button';
 import FormField from '../components/ui/FormField';
 
 export default function Login() {
   const { login, signup, user, loading, error } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const successMessage = location.state?.message;
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -77,6 +79,13 @@ export default function Login() {
           </div>
         )}
 
+        {successMessage && (
+          <div className="mb-6 p-4 rounded-xl bg-emerald-950/30 border border-emerald-900/40 text-emerald-400 text-xs font-semibold flex items-start">
+            <CheckCircle className="w-4 h-4 mr-2 shrink-0 mt-0.5" />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {isSignUp && (
             <FormField label="Full Name" required>
@@ -120,6 +129,16 @@ export default function Login() {
                 className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-800 bg-slate-950 text-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
               />
             </div>
+            {!isSignUp && (
+              <div className="flex justify-end mt-1.5">
+                <Link
+                  to="/forgot-password"
+                  className="text-xs font-bold text-indigo-400 hover:text-indigo-350 hover:underline transition-colors"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+            )}
           </FormField>
 
           <Button

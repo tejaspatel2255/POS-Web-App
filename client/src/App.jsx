@@ -5,6 +5,8 @@ import { useAuthStore } from './store/useAuthStore';
 import { useLayoutStore } from './store/useLayoutStore';
 import { supabase } from './utils/supabaseClient';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import PosTerminal from './pages/PosTerminal';
 import OrdersLog from './pages/OrdersLog';
@@ -108,8 +110,10 @@ export default function App() {
       />
 
       <Routes>
-        {/* Public auth route */}
+        {/* Public auth routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Scoped protected workspace routes */}
         <Route element={<MainLayout />}>
