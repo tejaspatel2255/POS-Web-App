@@ -131,6 +131,18 @@ export default function PosTerminal() {
     }
   }, [user, resolvedOutletId]);
 
+  useEffect(() => {
+    const handleSyncComplete = () => {
+      if (user && resolvedOutletId) {
+        loadPOSData();
+      }
+    };
+    window.addEventListener('offline-sync-completed', handleSyncComplete);
+    return () => {
+      window.removeEventListener('offline-sync-completed', handleSyncComplete);
+    };
+  }, [user, resolvedOutletId]);
+
   // Filter products based on search and category
   // NOTE: category_id is a Supabase nested join object — it has `.id`, not `._id`
   const filteredProducts = products.filter((p) => {

@@ -71,6 +71,18 @@ export default function OrdersLog() {
     }
   }, [user, statusFilter]);
 
+  useEffect(() => {
+    const handleSyncComplete = () => {
+      if (user) {
+        fetchOrders();
+      }
+    };
+    window.addEventListener('offline-sync-completed', handleSyncComplete);
+    return () => {
+      window.removeEventListener('offline-sync-completed', handleSyncComplete);
+    };
+  }, [user]);
+
   const handleApplyDateFilter = (e) => {
     e.preventDefault();
     // Constraint: start must not be after end

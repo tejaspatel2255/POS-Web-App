@@ -18,6 +18,8 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Sidebar from './components/layout/Sidebar';
 import Topbar from './components/layout/Topbar';
+import { OfflineManager } from './components/offline/OfflineManager';
+import { OfflineBanner } from './components/offline/OfflineBanner';
 
 import { useMediaQuery } from './hooks/useMediaQuery';
 
@@ -130,6 +132,8 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <OfflineManager />
+      <OfflineBanner />
       {/* Toast Notification Container */}
       <Toaster
         position="top-right"

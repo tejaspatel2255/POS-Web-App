@@ -17,6 +17,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useLayoutStore } from '../../store/useLayoutStore';
 
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { PendingBadge } from '../offline/PendingBadge';
 
 export default function Sidebar() {
   const { user } = useAuthStore();
@@ -159,6 +160,11 @@ export default function Sidebar() {
             >
               <Icon className={`w-5 h-5 shrink-0 ${isCollapsed ? '' : 'mr-3'}`} />
               {!isCollapsed && <span>{item.name}</span>}
+              {!isCollapsed && item.path === '/orders' && (
+                <div className="ml-auto">
+                  <PendingBadge />
+                </div>
+              )}
               {isCollapsed && (
                 <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-slate-950 text-white text-xs font-semibold rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-150 whitespace-nowrap shadow-xl border border-slate-800 z-50">
                   {item.name}

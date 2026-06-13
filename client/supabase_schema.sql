@@ -239,3 +239,12 @@ ALTER TABLE public.stock_adjustment_reasons DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shifts DISABLE ROW LEVEL SECURITY;
 
+-- 17. OFFLINE-FIRST BILLING COLUMNS
+ALTER TABLE public.orders 
+  ADD COLUMN IF NOT EXISTS source text DEFAULT 'online' CHECK (source IN ('online', 'offline')),
+  ADD COLUMN IF NOT EXISTS local_id uuid,
+  ADD COLUMN IF NOT EXISTS synced_at TIMESTAMP WITH TIME ZONE;
+
+-- Add index for finding offline orders
+CREATE INDEX IF NOT EXISTS idx_orders_source ON public.orders(source);
+CREATE INDEX IF NOT EXISTS idx_orders_local_id ON public.orders(local_id);

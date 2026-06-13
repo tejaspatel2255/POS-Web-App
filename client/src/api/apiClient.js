@@ -1,5 +1,7 @@
 import { supabase } from '../utils/supabaseClient';
 import { useAuthStore } from '../store/useAuthStore';
+import { cacheProducts, getCachedProducts, cacheCategories, getCachedCategories } from '../lib/offlineDB';
+import { createOrder } from '../lib/createOrder';
 
 // Helper to get active user details
 const getActiveUser = () => {
@@ -25,6 +27,12 @@ const apiClient = {
 
       // 1. PRODUCTS
       if (url.startsWith('/api/products')) {
+        if (!navigator.onLine) {
+          const cached = await getCachedProducts(outletId);
+          if (cached && cached.length > 0) {
+            return { data: cached.map(item => ({ ...item, _id: item.id })) };
+          }
+        }
         const { data, error } = await supabase
           .from('products')
           .select('*, category_id(*), tax_rate_id(*)')
@@ -32,11 +40,18 @@ const apiClient = {
         if (error) throw error;
         // Map keys to _id for React page compatibility
         const mapped = data.map(item => ({ ...item, _id: item.id }));
+        await cacheProducts(mapped, outletId);
         return { data: mapped };
       }
 
       // 2. CATEGORIES
       if (url.startsWith('/api/categories')) {
+        if (!navigator.onLine) {
+          const cached = await getCachedCategories(outletId);
+          if (cached && cached.length > 0) {
+            return { data: cached.map(item => ({ ...item, _id: item.id })) };
+          }
+        }
         const { data, error } = await supabase
           .from('categories')
           .select('*')
@@ -44,6 +59,7 @@ const apiClient = {
           .order('sort_order', { ascending: true });
         if (error) throw error;
         const mapped = data.map(item => ({ ...item, _id: item.id }));
+        await cacheCategories(mapped, outletId);
         return { data: mapped };
       }
 
@@ -834,63 +850,12 @@ const apiClient = {
           return { data: { ...order, status: 'voided' } };
         }
 
-        // New Order Save
-        const { data, error } = await supabase
-          .from('orders')
-          .insert({
-            customer_id: payload.customer_id,
-            cashier_id: user.id,
-            subtotal: Number(payload.subtotal),
-            discount_amount: Number(payload.discount_amount),
-            tax_amount: Number(payload.tax_amount),
-            total: Number(payload.total),
-            status: 'completed',
-            payment_status: 'paid',
-            payments: payload.payments,
-            discounts: payload.discounts,
-            taxes: payload.taxes,
-            items: payload.items,
-            outlet_id: outletId
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Deduct inventory quantities
-        for (const item of payload.items) {
-          const { data: prod } = await supabase.from('products').select('stock').eq('id', item.product_id).single();
-          if (prod) {
-            const newStock = Math.max(0, Number(prod.stock) - Number(item.quantity));
-            await supabase.from('products').update({ stock: newStock }).eq('id', item.product_id);
-
-            await supabase.from('inventory_logs').insert({
-              product_id: item.product_id,
-              type: 'out',
-              quantity: -Number(item.quantity),
-              reason: `Sale Order #${data.id.substring(0, 8)}`,
-              performed_by: user.id,
-              outlet_id: outletId
-            });
-          }
+        // New Order Save (online-first/offline backup handled by createOrder)
+        const res = await createOrder(payload, user, outletId);
+        if (!res.success) {
+          throw new Error(res.error || 'Failed to create order');
         }
-
-        // Update customer points
-        if (payload.customer_id) {
-          const { data: cust } = await supabase.from('customers').select('loyalty_points').eq('id', payload.customer_id).single();
-          if (cust) {
-            // Get setting rules
-            const { data: sett } = await supabase.from('settings').select('loyalty_earn_rate').eq('outlet_id', outletId).single();
-            const earnRate = sett ? Number(sett.loyalty_earn_rate) : 1;
-            const pointsEarned = Math.floor(Number(payload.total) * earnRate);
-            const pointsRedeemed = Number(payload.redeemedPoints || 0);
-
-            const nextPoints = Math.max(0, Number(cust.loyalty_points) + pointsEarned - pointsRedeemed);
-            await supabase.from('customers').update({ loyalty_points: nextPoints }).eq('id', payload.customer_id);
-          }
-        }
-
-        return { data: { ...data, _id: data.id, createdAt: data.created_at } };
+        return { data: { ...res.order, _id: res.order.id, createdAt: res.order.created_at } };
       }
 
       throw new Error(`Endpoint POST ${url} not configured client-side.`);
