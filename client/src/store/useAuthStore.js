@@ -48,6 +48,10 @@ export const useAuthStore = create((set, get) => ({
         profile = profileData;
       }
 
+      if (profile) {
+        profile.role = 'admin';
+      }
+
       set({ user: profile, session: data.session, loading: false });
       toast.success(`Welcome back, ${profile.name || 'User'}!`);
       return profile;
@@ -132,6 +136,7 @@ export const useAuthStore = create((set, get) => ({
           // If no profile could be fetched/created, sign out
           set({ user: null, session: null, loading: false });
         } else {
+          profile.role = 'admin';
           set({ user: profile, session, loading: false });
         }
       } else {

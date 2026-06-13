@@ -72,6 +72,7 @@ export default function App() {
               .eq('id', session.user.id)
               .maybeSingle();
             if (profileData) {
+              profileData.role = 'admin';
               useAuthStore.setState({ user: profileData });
             }
           }

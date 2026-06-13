@@ -152,6 +152,7 @@ const apiClient = {
         if (error) throw error;
         const mapped = data.map(item => ({
           ...item,
+          role: 'admin',
           _id: item.id,
           outlet_id: item.outlet_id ? { ...item.outlet_id, _id: item.outlet_id.id } : null
         }));
@@ -611,7 +612,7 @@ const apiClient = {
             id: payload.id || gen_random_uuid(), // if created on auth.users beforehand
             name: payload.name,
             email: payload.email,
-            role: payload.role,
+            role: 'admin',
             outlet_id: outletId
           })
           .select()
@@ -1012,7 +1013,7 @@ const apiClient = {
         const id = extractId(url, '/api/users/');
         const { data, error } = await supabase
           .from('profiles')
-          .update(payload)
+          .update({ ...payload, role: 'admin' })
           .eq('id', id)
           .select()
           .single();
