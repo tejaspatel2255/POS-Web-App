@@ -242,8 +242,8 @@ export default function Settings() {
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-slate-50 dark:bg-slate-950">
       
-      {/* Settings Sub-Sidebar */}
-      <aside className="w-56 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 p-4 space-y-1 overflow-y-auto shrink-0 select-none">
+      {/* Settings Sub-Sidebar — hidden on mobile, visible sm+ */}
+      <aside className="hidden sm:flex w-56 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 p-4 flex-col space-y-1 overflow-y-auto shrink-0 select-none">
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-3">Settings Panel</p>
         {filteredSidebar.map((item) => {
           const Icon = item.icon;
@@ -265,7 +265,30 @@ export default function Settings() {
       </aside>
 
       {/* Main Settings Panel */}
-      <div className="flex-1 p-8 overflow-y-auto">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile tab scroll strip — visible only on mobile */}
+        <div className="flex sm:hidden items-center overflow-x-auto border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 gap-1.5 shrink-0 scrollbar-hide">
+          {filteredSidebar.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                  activeSection === item.id
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-500 bg-slate-50 dark:bg-slate-800 dark:text-slate-400 border border-slate-100 dark:border-slate-700'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Content area */}
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
         {loading ? (
           <div className="h-64 flex items-center justify-center">
             <svg className="animate-spin h-8 w-8 text-indigo-605" fill="none" viewBox="0 0 24 24">
@@ -599,6 +622,7 @@ export default function Settings() {
             />
           </div>
         ) : null}
+      </div>
       </div>
 
       {/* Inline Delete Confirmation Modal */}

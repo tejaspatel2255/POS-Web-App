@@ -350,7 +350,9 @@ export default function Products() {
             Add Product
           </Button>
         </div>
-      </PageHeader>      {/* Filters & Bulk Operations bar */}
+      </PageHeader>
+
+      {/* Filters & Bulk Operations bar */}
       <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Search & Category Filter */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
