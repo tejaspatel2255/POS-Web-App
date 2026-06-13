@@ -5,7 +5,8 @@ import { useAuthStore } from '../store/useAuthStore';
 const getActiveUser = () => {
   const user = useAuthStore.getState().user;
   if (!user) throw new Error('Not authenticated');
-  const outletId = user.outlet_id?.id || user.outlet_id || null;
+  const outletId = user.outlet_id?.id || (typeof user.outlet_id === 'string' ? user.outlet_id : null);
+  if (!outletId) throw new Error('No outlet assigned to your account. Please contact your administrator.');
   return { user, outletId };
 };
 

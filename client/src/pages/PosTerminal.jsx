@@ -115,18 +115,21 @@ export default function PosTerminal() {
       });
 
     } catch (err) {
-      toast.error('Error loading terminal catalog data');
+      toast.error(err.message || 'Error loading terminal catalog data');
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+  // Wait until user AND outlet_id are both resolved before loading POS data.
+  // On mobile/slow connections the profile can load before the outlet join resolves.
+  const resolvedOutletId = user?.outlet_id?.id || user?.outlet_id || null;
   useEffect(() => {
-    if (user) {
+    if (user && resolvedOutletId) {
       loadPOSData();
     }
-  }, [user]);
+  }, [user, resolvedOutletId]);
 
   // Filter products based on search and category
   // NOTE: category_id is a Supabase nested join object — it has `.id`, not `._id`
@@ -748,44 +751,95 @@ export default function PosTerminal() {
           onClose={() => setIsRecallModalOpen(false)}
           size="md"
         >
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
             {heldOrders.length > 0 ? (
-              heldOrders.map((h) => (
-                <div
-                  key={h.id}
-                  className="flex items-center justify-between p-4 border border-slate-105 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/20"
-                >
-                  <div>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {h.customer ? h.customer.name : 'Walk-in Customer'}
-                    </p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
-                      {h.cartItems.length} items • {new Date(h.time).toLocaleTimeString()}
-                    </p>
+              heldOrders.map((h) => {
+                // Calculate held order subtotal
+                const heldSubtotal = h.cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                const heldDiscount = h.orderDiscount
+                  ? h.orderDiscount.type === 'percentage'
+                    ? heldSubtotal * (Number(h.orderDiscount.default_value || 0) / 100)
+                    : Number(h.orderDiscount.default_value || 0)
+                  : 0;
+                const heldTotal = Math.max(0, heldSubtotal - heldDiscount);
+
+                return (
+                  <div
+                    key={h.id}
+                    className="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 overflow-hidden shadow-sm"
+                  >
+                    {/* Order header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60">
+                      <div>
+                        <p className="text-xs font-black text-slate-800 dark:text-slate-200">
+                          {h.customer ? h.customer.name : 'Walk-in Customer'}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                          Held at {new Date(h.time).toLocaleTimeString()} • {h.cartItems.length} {h.cartItems.length === 1 ? 'item' : 'items'}
+                        </p>
+                      </div>
+                      <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                        ₹{heldTotal.toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Items list */}
+                    <div className="px-4 py-2 space-y-1.5">
+                      {h.cartItems.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <div className="min-w-0 flex-1">
+                            <span className="font-semibold text-slate-700 dark:text-slate-300 truncate block">
+                              {item.product.name}
+                              {item.variantName && (
+                                <span className="text-indigo-500 font-bold ml-1">({item.variantName})</span>
+                              )}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {item.quantity} × ₹{item.price.toFixed(2)}
+                            </span>
+                          </div>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 ml-3 shrink-0">
+                            ₹{(item.price * item.quantity).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Discount + Actions footer */}
+                    <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {h.orderDiscount ? (
+                          <span className="text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 px-2 py-0.5 rounded-full truncate">
+                            {h.orderDiscount.name} applied
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">No discount</span>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <Button
+                          variant="primary"
+                          onClick={() => {
+                            recallOrder(h.id);
+                            setIsRecallModalOpen(false);
+                          }}
+                          className="!h-8 !px-3 rounded-lg text-xs font-bold"
+                        >
+                          Recall
+                        </Button>
+                        <button
+                          onClick={() => removeHeldOrder(h.id)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-950/20 text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-950/40 border border-rose-100 dark:border-rose-900/30 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        recallOrder(h.id);
-                        setIsRecallModalOpen(false);
-                      }}
-                      className="!h-8 rounded-lg text-xs"
-                    >
-                      Recall
-                    </Button>
-                    <Button
-                      variant="danger"
-                      onClick={() => removeHeldOrder(h.id)}
-                      className="!h-8 !px-3 rounded-lg text-xs"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <p className="text-center py-6 text-sm text-slate-400 font-semibold">No held orders available</p>
+              <p className="text-center py-6 text-sm text-slate-400 font-semibold">No held orders saved</p>
             )}
           </div>
         </Modal>
