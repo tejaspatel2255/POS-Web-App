@@ -92,12 +92,22 @@ export default function Sidebar() {
       {/* Brand Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
         <div className="flex items-center space-x-2 overflow-hidden">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-indigo-500/20 shrink-0">
-            A
+          <img
+            src="/logo.png"
+            alt="TejasPOS"
+            className="w-8 h-8 rounded-lg object-cover shadow-md shadow-indigo-550/20 shrink-0"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              const fallback = e.target.parentElement.querySelector('.logo-fallback');
+              if (fallback) fallback.classList.remove('hidden');
+            }}
+          />
+          <div className="logo-fallback hidden w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-indigo-500/20 shrink-0">
+            T
           </div>
           {!isCollapsed && (
             <span className="font-extrabold text-lg text-white tracking-tight truncate">
-              Antigravity<span className="text-indigo-400">POS</span>
+              Tejas<span className="text-indigo-400">POS</span>
             </span>
           )}
         </div>

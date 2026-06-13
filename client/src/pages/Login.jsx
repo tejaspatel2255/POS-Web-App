@@ -60,12 +60,22 @@ export default function Login() {
 
       {/* Card container */}
       <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-500 items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-indigo-500/20 mb-4">
-            A
+        <div className="text-center mb-8 flex flex-col items-center justify-center">
+          <img
+            src="/logo.png"
+            alt="TejasPOS"
+            className="w-14 h-14 rounded-2xl object-cover shadow-lg shadow-indigo-550/20 mb-4"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              const fallback = e.target.parentElement.querySelector('.logo-fallback');
+              if (fallback) fallback.classList.remove('hidden');
+            }}
+          />
+          <div className="logo-fallback hidden w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-indigo-500/20 mb-4">
+            T
           </div>
           <h2 className="text-2xl font-black text-white tracking-tight">
-            {isSignUp ? 'Create your Account' : 'Sign in to POS'}
+            {isSignUp ? 'Create your Account' : 'Sign in to TejasPOS'}
           </h2>
           <p className="text-sm font-semibold text-slate-400 mt-1">
             {isSignUp ? 'Set up the first administrator account' : 'Enter your credentials to access the terminal'}
