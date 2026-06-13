@@ -114,7 +114,7 @@ export default function Reports() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <PageHeader title="Business Intelligence Reports">
         <Button variant="secondary" icon={RefreshCw} onClick={fetchReports}>
           Reload

@@ -340,7 +340,7 @@ export default function Products() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <PageHeader title="Product Catalog Management">
         <div className="space-x-2 flex">
           <Button variant="secondary" icon={Upload} onClick={() => setIsImportOpen(true)}>

@@ -182,7 +182,7 @@ export default function Customers() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <PageHeader title="Customer CRM Directory">
         <Button variant="primary" icon={Plus} onClick={openAddForm}>
           Add Customer

@@ -248,7 +248,7 @@ export default function Inventory() {
 
   // Render Page
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <PageHeader title="Stock & Inventory Control">
         <Button variant="secondary" icon={RefreshCw} onClick={fetchData}>
           Reload
