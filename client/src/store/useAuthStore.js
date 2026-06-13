@@ -21,13 +21,32 @@ export const useAuthStore = create((set, get) => ({
       if (error) throw error;
 
       // Fetch user profile from profiles table
-      const { data: profile, error: profileError } = await supabase
+      let profile = null;
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*, outlet_id(*)')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) throw profileError;
+
+      if (!profileData) {
+        // Auto-create missing profile for existing user
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            name: data.user.email.split('@')[0],
+            email: data.user.email,
+            role: 'admin'
+          })
+          .select('*, outlet_id(*)')
+          .maybeSingle();
+        if (createError) throw createError;
+        profile = newProfile;
+      } else {
+        profile = profileData;
+      }
 
       set({ user: profile, session: data.session, loading: false });
       toast.success(`Welcome back, ${profile.name || 'User'}!`);
@@ -83,14 +102,34 @@ export const useAuthStore = create((set, get) => ({
       
       if (session) {
         // Fetch user profile
-        const { data: profile, error: profileError } = await supabase
+        let profile = null;
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*, outlet_id(*)')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
           
-        if (profileError) {
-          // If no profile yet, wait or sign out
+        if (profileData) {
+          profile = profileData;
+        } else if (!profileError) {
+          // Auto-create missing profile
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: session.user.id,
+              name: session.user.email.split('@')[0],
+              email: session.user.email,
+              role: 'admin'
+            })
+            .select('*, outlet_id(*)')
+            .maybeSingle();
+          if (!createError) {
+            profile = newProfile;
+          }
+        }
+           
+        if (!profile) {
+          // If no profile could be fetched/created, sign out
           set({ user: null, session: null, loading: false });
         } else {
           set({ user: profile, session, loading: false });
