@@ -1,4 +1,4 @@
-# Savaliya Universal Point of Sale (POS) Web App
+# Universal Point of Sale (POS) Web App
 
 A modern, multi-user, multi-outlet MERN stack Point of Sale (POS) application integrated with Supabase Authentication, designed to run entirely on free-tier services.
 
