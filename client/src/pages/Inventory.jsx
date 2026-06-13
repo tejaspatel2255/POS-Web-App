@@ -85,7 +85,7 @@ export default function Inventory() {
       setAdjustReason('');
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error adjusting stock');
+      toast.error(err.response?.data?.message || err.message || 'Error adjusting stock');
     } finally {
       setAdjustLoading(false);
     }
@@ -113,7 +113,7 @@ export default function Inventory() {
       setTransferTargetOutlet('');
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error transferring stock');
+      toast.error(err.response?.data?.message || err.message || 'Error transferring stock');
     } finally {
       setTransferLoading(false);
     }

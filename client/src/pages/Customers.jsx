@@ -90,7 +90,7 @@ export default function Customers() {
       setIsFormOpen(false);
       fetchCustomers();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error saving customer');
+      toast.error(err.response?.data?.message || err.message || 'Error saving customer');
     } finally {
       setFormLoading(false);
     }
@@ -304,7 +304,7 @@ export default function Customers() {
                   <div>
                     <span className="text-[10px] font-bold text-slate-450 uppercase block">Total Spent</span>
                     <span className="text-base font-extrabold text-slate-850 dark:text-slate-50 mt-0.5">
-                      ${profileData.totalSpent.toFixed(2)}
+                      ₹{profileData.totalSpent.toFixed(2)}
                     </span>
                   </div>
                   <div className="p-2 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-lg">
@@ -360,7 +360,7 @@ export default function Customers() {
                             <td className="p-3">{new Date(order.createdAt).toLocaleDateString()}</td>
                             <td className="p-3 capitalize">{order.status}</td>
                             <td className="p-3 font-extrabold text-right text-slate-900 dark:text-slate-100">
-                              ${order.total.toFixed(2)}
+                              ₹{order.total.toFixed(2)}
                             </td>
                           </tr>
                         ))

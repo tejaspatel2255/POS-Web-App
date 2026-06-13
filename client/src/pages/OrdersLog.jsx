@@ -93,7 +93,7 @@ export default function OrdersLog() {
       setRefundReason('');
       fetchOrders(); // reload list
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error refunding order');
+      toast.error(err.response?.data?.message || err.message || 'Error refunding order');
     } finally {
       setRefundLoading(false);
     }
@@ -115,7 +115,7 @@ export default function OrdersLog() {
       setVoidReason('');
       fetchOrders(); // reload list
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error voiding order');
+      toast.error(err.response?.data?.message || err.message || 'Error voiding order');
     } finally {
       setVoidLoading(false);
     }

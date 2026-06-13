@@ -82,7 +82,7 @@ export default function Categories() {
       setIsFormOpen(false);
       fetchCategories();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error saving category');
+      toast.error(err.response?.data?.message || err.message || 'Error saving category');
     } finally {
       setFormLoading(false);
     }

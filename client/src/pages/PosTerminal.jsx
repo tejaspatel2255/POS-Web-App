@@ -172,7 +172,7 @@ export default function PosTerminal() {
       setNewCustomerEmail('');
       toast.success('Customer registered and attached to sale');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error registering customer');
+      toast.error(err.response?.data?.message || err.message || 'Error registering customer');
     }
   };
 
@@ -319,7 +319,7 @@ export default function PosTerminal() {
       setProducts(prodsRes.data);
 
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error processing transaction');
+      toast.error(err.response?.data?.message || err.message || 'Error processing transaction');
     }
   };
 

@@ -203,7 +203,7 @@ export default function Settings() {
       setIsModalOpen(false);
       loadSettingsData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error processing request');
+      toast.error(err.response?.data?.message || err.message || 'Error processing request');
     }
   };
 
