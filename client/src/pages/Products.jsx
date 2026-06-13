@@ -151,7 +151,7 @@ export default function Products() {
       setIsFormOpen(false);
       fetchCatalogData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error saving product');
+      toast.error(err.response?.data?.message || err.message || 'Error saving product');
     } finally {
       setFormLoading(false);
     }
