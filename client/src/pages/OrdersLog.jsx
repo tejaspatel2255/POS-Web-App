@@ -109,8 +109,9 @@ export default function OrdersLog() {
         reason: refundReason,
       });
       toast.success('Order refunded successfully');
-      setSelectedOrder(res.data); // update detail modal
       setIsRefundModalOpen(false);
+      setIsDetailsOpen(false);
+      setSelectedOrder(null);
       setRefundReason('');
       fetchOrders(); // reload list
     } catch (err) {
@@ -131,8 +132,9 @@ export default function OrdersLog() {
         reason: voidReason,
       });
       toast.success('Order voided successfully');
-      setSelectedOrder(res.data); // update detail modal
       setIsVoidModalOpen(false);
+      setIsDetailsOpen(false);
+      setSelectedOrder(null);
       setVoidReason('');
       fetchOrders(); // reload list
     } catch (err) {
