@@ -1,0 +1,104 @@
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { useAuthStore } from './store/useAuthStore';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import PosTerminal from './pages/PosTerminal';
+import OrdersLog from './pages/OrdersLog';
+import Products from './pages/Products';
+import Categories from './pages/Categories';
+import Inventory from './pages/Inventory';
+import Customers from './pages/Customers';
+import Reports from './pages/Reports';
+import Settings from './pages/Settings';
+import Sidebar from './components/layout/Sidebar';
+import Topbar from './components/layout/Topbar';
+
+// Protected Route Wrapper Layout Component
+function MainLayout() {
+  const { user, loading, checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 space-y-4">
+        <svg className="animate-spin h-10 w-10 text-indigo-500" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        <span className="text-sm font-semibold text-slate-400">Verifying session credentials...</span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Topbar />
+        <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const { user } = useAuthStore();
+
+  return (
+    <BrowserRouter>
+      {/* Toast Notification Container */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          className: '!bg-slate-900 !text-white !border !border-slate-800 !rounded-2xl !px-4 !py-3 !text-sm',
+          duration: 3500,
+        }}
+      />
+
+      <Routes>
+        {/* Public auth route */}
+        <Route path="/login" element={<Login />} />
+
+        {/* Scoped protected workspace routes */}
+        <Route element={<MainLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/pos" element={<PosTerminal />} />
+          <Route path="/orders" element={<OrdersLog />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/categories" element={<Categories />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/customers" element={<Customers />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+
+        {/* Fallbacks */}
+        <Route
+          path="*"
+          element={
+            user ? (
+              user.role === 'cashier' ? (
+                <Navigate to="/pos" replace />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+  );
+}
