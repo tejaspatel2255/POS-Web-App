@@ -13,7 +13,10 @@
     <!-- Non-Flashing Theme Initialization Script -->
     <script>
       (function () {
-        const theme = localStorage.getItem('pos-theme') || 'light';
+        let theme = localStorage.getItem('pos-theme');
+        if (!theme) {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
         } else {
