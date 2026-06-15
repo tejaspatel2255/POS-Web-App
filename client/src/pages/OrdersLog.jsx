@@ -20,6 +20,8 @@ import StatusBadge from '../components/ui/StatusBadge';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import FormField from '../components/ui/FormField';
+import { ReceiptModal } from '../components/pos/ReceiptModal';
+import { supabase } from '../utils/supabaseClient';
 
 export default function OrdersLog() {
   const { user } = useAuthStore();
@@ -45,6 +47,92 @@ export default function OrdersLog() {
   const [isVoidModalOpen, setIsVoidModalOpen] = useState(false);
   const [voidReason, setVoidReason] = useState('');
   const [voidLoading, setVoidLoading] = useState(false);
+
+  // Reprint Receipt states
+  const [printingOrderId, setPrintingOrderId] = useState(null);
+  const [receiptData, setReceiptData] = useState(null);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+
+  const handlePrintReceipt = async (orderId) => {
+    setPrintingOrderId(orderId);
+    try {
+      let order = orders.find(o => o._id === orderId || o.id === orderId);
+      
+      // If online, fetch fresh order copy from Supabase to ensure complete details
+      if (navigator.onLine) {
+        try {
+          const { data: freshOrder, error: orderError } = await supabase
+            .from('orders')
+            .select('*, customer_id(*), cashier_id(*)')
+            .eq('id', orderId)
+            .single();
+
+          if (!orderError && freshOrder) {
+            order = {
+              ...freshOrder,
+              _id: freshOrder.id,
+              createdAt: freshOrder.created_at,
+              customer_id: freshOrder.customer_id ? { ...freshOrder.customer_id, _id: freshOrder.customer_id.id } : null,
+              cashier_id: freshOrder.cashier_id ? { ...freshOrder.cashier_id, _id: freshOrder.cashier_id.id } : null,
+              items: Array.isArray(freshOrder.items) ? freshOrder.items : JSON.parse(freshOrder.items || '[]'),
+              payments: Array.isArray(freshOrder.payments) ? freshOrder.payments : JSON.parse(freshOrder.payments || '[]'),
+            };
+          }
+        } catch (dbErr) {
+          console.warn('Could not fetch fresh order from server, using local cache:', dbErr);
+        }
+      }
+
+      if (!order) throw new Error('Order not found');
+
+      // Map to ReceiptModal format
+      const items = Array.isArray(order.items) ? order.items : [];
+      const payments = Array.isArray(order.payments) ? order.payments : [];
+
+      setReceiptData({
+        storeName: user.outlet_id?.name || 'Primary Outlet',
+        storeAddress: user.outlet_id?.address || '',
+        storePhone: user.outlet_id?.phone || '',
+        storeGST: user.outlet_id?.tax_number || '',
+        receiptId: order._id || order.id,
+        date: new Date(order.createdAt || order.created_at).toLocaleString('en-IN', {
+          day: 'numeric',
+          month: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        }),
+        cashierName: order.cashier_id?.name || 'Unknown',
+        items: items.map((item) => ({
+          name: item.name + (item.variant_name ? ` (${item.variant_name})` : ''),
+          quantity: item.quantity,
+          unitPrice: item.price,
+          lineTotal: item.price * item.quantity,
+        })),
+        subtotal: order.subtotal ?? 0,
+        discount: order.discount_amount ?? 0,
+        taxAmount: order.tax_amount ?? 0,
+        taxLabel: 'GST',
+        total: order.total ?? 0,
+        payments: payments,
+        changeAmount: order.change_amount || 0,
+        currencySymbol: '₹',
+        customer: order.customer_id && typeof order.customer_id === 'object'
+          ? {
+              name: order.customer_id.name || 'Walk-in Customer',
+              phone: order.customer_id.phone || '',
+            }
+          : null,
+      });
+
+      setReceiptModalOpen(true);
+    } catch (err) {
+      toast.error(`Failed to load receipt: ${err.message}`);
+    } finally {
+      setPrintingOrderId(null);
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -195,23 +283,38 @@ export default function OrdersLog() {
       render: (row) => <span className="font-black">₹{row.total.toFixed(2)}</span>,
     },
     {
-      header: 'Inspect',
+      header: 'Actions',
       key: 'actions',
       render: (row) => (
-        <Button
-          variant="secondary"
-          icon={Eye}
-          onClick={() => {
-            setSelectedOrder(row);
-            setIsDetailsOpen(true);
-          }}
-          className="!h-8 !px-2.5 rounded-lg text-xs"
-        >
-          View
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="secondary"
+            icon={Eye}
+            onClick={() => {
+              setSelectedOrder(row);
+              setIsDetailsOpen(true);
+            }}
+            className="!h-8 !px-2.5 rounded-lg text-xs"
+          >
+            View
+          </Button>
+          <button
+            onClick={() => handlePrintReceipt(row._id)}
+            disabled={printingOrderId === row._id}
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 border border-indigo-200 bg-indigo-50 dark:bg-indigo-950/20 dark:border-indigo-900/40 rounded-lg text-xs font-bold text-indigo-705 dark:text-indigo-400 hover:bg-indigo-100/70 dark:hover:bg-indigo-950/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          >
+            {printingOrderId === row._id ? (
+              <div className="w-3.5 h-3.5 border-2 border-indigo-300 border-t-indigo-700 rounded-full animate-spin" />
+            ) : (
+              <Printer size={13} />
+            )}
+            Print
+          </button>
+        </div>
       ),
     },
   ];
+
 
   const canMutate = user?.role === 'admin' || user?.role === 'manager';
 
@@ -396,19 +499,30 @@ export default function OrdersLog() {
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-100 dark:border-slate-800/80 pt-3">
-                    <Button
-                      variant="secondary"
-                      icon={Eye}
+                  <div className="flex gap-2 mt-3">
+                    <button
                       onClick={() => {
                         setSelectedOrder(order);
                         setIsDetailsOpen(true);
                       }}
-                      className="w-full !h-9 text-xs rounded-xl font-bold"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 px-3 border border-slate-200 dark:border-slate-850 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
-                      View Receipt Details
-                    </Button>
+                      <Eye size={13} /> View
+                    </button>
+                    <button
+                      onClick={() => handlePrintReceipt(order._id)}
+                      disabled={printingOrderId === order._id}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 px-3 border border-indigo-200 bg-indigo-50 dark:bg-indigo-950/20 dark:border-indigo-900/40 rounded-xl text-xs font-bold text-indigo-705 dark:text-indigo-400 hover:bg-indigo-100/70 dark:hover:bg-indigo-950/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    >
+                      {printingOrderId === order._id ? (
+                        <div className="w-3.5 h-3.5 border-2 border-indigo-300 border-t-indigo-700 rounded-full animate-spin" />
+                      ) : (
+                        <Printer size={13} />
+                      )}
+                      Print
+                    </button>
                   </div>
+
                 </div>
               );
             })}
@@ -700,6 +814,20 @@ export default function OrdersLog() {
           </form>
         </Modal>
       )}
+
+      {/* Receipt Modal for Reprinting */}
+      {receiptData && (
+        <ReceiptModal
+          isOpen={receiptModalOpen}
+          onClose={() => {
+            setReceiptModalOpen(false);
+            setReceiptData(null);
+          }}
+          onPrint={() => window.print()}
+          receipt={receiptData}
+        />
+      )}
     </div>
   );
 }
+
