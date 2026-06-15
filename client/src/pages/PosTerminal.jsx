@@ -27,6 +27,7 @@ import toast from 'react-hot-toast';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import FormField from '../components/ui/FormField';
+import { ReceiptModal } from '../components/pos/ReceiptModal';
 
 export default function PosTerminal() {
   const { user } = useAuthStore();
@@ -81,6 +82,7 @@ export default function PosTerminal() {
   
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [lastCreatedOrder, setLastCreatedOrder] = useState(null);
+  const [lastChangeReturned, setLastChangeReturned] = useState(0);
 
   const [isRecallModalOpen, setIsRecallModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -334,6 +336,7 @@ export default function PosTerminal() {
       };
 
       const response = await apiClient.post('/api/orders', orderPayload);
+      setLastChangeReturned(cashChange);
       setLastCreatedOrder(response.data);
       
       // Trigger Supabase Realtime broadcast for manager alerts
@@ -1373,112 +1376,53 @@ export default function PosTerminal() {
 
       {/* Printable Receipt Modal */}
       {isReceiptModalOpen && lastCreatedOrder && (
-        <Modal
-          title="Checkout Completed - Customer Receipt"
+        <ReceiptModal
+          isOpen={isReceiptModalOpen}
           onClose={() => {
             setIsReceiptModalOpen(false);
             setLastCreatedOrder(null);
+            setLastChangeReturned(0);
           }}
-          size="sm"
-        >
-          {/* HTML Printable Area */}
-          <div id="receipt-print-area" className="p-4 bg-white text-slate-900 border rounded-2xl text-xs font-mono max-w-[320px] mx-auto space-y-4">
-            <div className="text-center">
-              <h3 className="text-sm font-extrabold">{user.outlet_id?.name}</h3>
-              {user.outlet_id?.address && <p className="text-[10px] mt-0.5">{user.outlet_id.address}</p>}
-              {user.outlet_id?.tax_number && <p className="text-[10px]">Tax Registration: {user.outlet_id.tax_number}</p>}
-              <p className="text-[9px] text-slate-400 mt-1">Receipt ID: {lastCreatedOrder._id.toUpperCase()}</p>
-              <p className="text-[9px] text-slate-400">Date: {new Date(lastCreatedOrder.createdAt).toLocaleString()}</p>
-            </div>
-
-            <div className="border-t border-dashed py-2 space-y-1">
-              {lastCreatedOrder.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between">
-                  <span>
-                    {item.name} {item.variant_name ? `(${item.variant_name})` : ''} x{item.quantity}
-                  </span>
-                  <span>₹{(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-dashed pt-2 space-y-1">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>₹{lastCreatedOrder.subtotal.toFixed(2)}</span>
-              </div>
-              {lastCreatedOrder.discount_amount > 0 && (
-                <div className="flex justify-between text-rose-600">
-                  <span>Discount:</span>
-                  <span>-₹{lastCreatedOrder.discount_amount.toFixed(2)}</span>
-                </div>
-              )}
-              {lastCreatedOrder.taxes.map((t, idx) => (
-                <div key={idx} className="flex justify-between">
-                  <span>{t.name}:</span>
-                  <span>₹{t.amount.toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between font-black text-sm pt-1.5 border-t border-dashed">
-                <span>Total Amount:</span>
-                <span>₹{lastCreatedOrder.total.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="border-t border-dashed pt-2 space-y-1">
-              <p className="font-bold text-[10px]">Payment Summary:</p>
-              {lastCreatedOrder.payments.map((p, idx) => (
-                <div key={idx} className="flex justify-between">
-                  <span>{p.method}:</span>
-                  <span>₹{p.amount.toFixed(2)}</span>
-                </div>
-              ))}
-              {lastCreatedOrder.customer_id && (
-                <div className="pt-2 border-t border-dashed border-slate-100 text-[9px] text-slate-400 text-center">
-                  <span>Customer: {lastCreatedOrder.customer_id.name}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="text-center pt-4 border-t border-dashed text-[10px] text-slate-400">
-              <p>Thank you for shopping with us!</p>
-            </div>
-          </div>
-
-          <div className="flex space-x-3 mt-6">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setIsReceiptModalOpen(false);
-                setLastCreatedOrder(null);
-              }}
-              className="flex-1"
-            >
-              Close
-            </Button>
-            <Button
-              variant="primary"
-              icon={Printer}
-              onClick={() => {
-                const w = window.open();
-                const content = document.getElementById('receipt-print-area').innerHTML;
-                w.document.write(`
-                  <html>
-                    <head><title>Print Receipt</title></head>
-                    <body style="font-family: monospace; padding: 20px;" onload="window.print(); window.close();">
-                      ${content}
-                    </body>
-                  </html>
-                `);
-                w.document.close();
-              }}
-              className="flex-1"
-            >
-              Print Receipt
-            </Button>
-          </div>
-        </Modal>
+          onPrint={() => window.print()}
+          receipt={{
+            storeName: user.outlet_id?.name || 'Primary Outlet',
+            storeAddress: user.outlet_id?.address || '',
+            storePhone: user.outlet_id?.phone || '',
+            storeGST: user.outlet_id?.tax_number || '',
+            receiptId: lastCreatedOrder._id || lastCreatedOrder.id,
+            date: new Date(lastCreatedOrder.createdAt || lastCreatedOrder.created_at).toLocaleString('en-IN', {
+              day: 'numeric',
+              month: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            }),
+            cashierName: user.name,
+            items: lastCreatedOrder.items.map((item) => ({
+              name: item.name + (item.variant_name ? ` (${item.variant_name})` : ''),
+              quantity: item.quantity,
+              unitPrice: item.price,
+              lineTotal: item.price * item.quantity,
+            })),
+            subtotal: lastCreatedOrder.subtotal,
+            discount: lastCreatedOrder.discount_amount,
+            taxAmount: lastCreatedOrder.tax_amount,
+            taxLabel: 'GST',
+            total: lastCreatedOrder.total,
+            payments: lastCreatedOrder.payments,
+            changeAmount: lastChangeReturned,
+            currencySymbol: '₹',
+            customer: lastCreatedOrder.customer_id && typeof lastCreatedOrder.customer_id === 'object'
+              ? {
+                  name: lastCreatedOrder.customer_id.name || 'Walk-in Customer',
+                  phone: lastCreatedOrder.customer_id.phone || '',
+                }
+              : (customer ? { name: customer.name, phone: customer.phone } : null),
+          }}
+        />
       )}
+
     </div>
   );
 }

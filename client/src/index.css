@@ -1,1 +1,36 @@
 @import "tailwindcss";
+
+@media print {
+  /* Hide everything except the receipt content */
+  body * {
+    visibility: hidden;
+  }
+  
+  .receipt-printable, 
+  .receipt-printable * {
+    visibility: visible;
+  }
+  
+  .receipt-printable {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm; /* standard thermal receipt width */
+    margin: 0;
+    padding: 8px;
+    background-color: white !important;
+    color: black !important;
+  }
+
+  /* Remove shadows, borders that don't print well */
+  .receipt-printable {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Hide buttons and close icon when printing */
+  .no-print {
+    display: none !important;
+  }
+}
+
