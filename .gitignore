@@ -39,3 +39,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Vercel & Vite local items
+.vercel
+dist
+dist-ssr
+*.local
+vite.config.js.timestamp-*
+coverage/

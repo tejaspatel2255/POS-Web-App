@@ -17,6 +17,9 @@ A modern, multi-user, multi-outlet Point of Sale (POS) application built entirel
   - **Desktop**: 2-column sidebar cart layout.
   - **Tablet**: Collapsible rail navigation.
   - **Mobile**: Sticky floating cart drawer sheet (slides up from the bottom), category search navigation, and optimized thumbnail grid touch targets.
+  - **Internationalization (i18n)**: Toggle languages seamlessly (English, Hindi, Gujarati) across all checkout menus, shift configurations, cart inputs, and receipt options.
+  - **Split Payments & Smart Change**: Supports split billing across multiple payment methods (Cash, Card, UPI, etc.) with validation constraints (prevents double clicking confirmation, tracks under/over-payments, calculates cash change return).
+  - **Thermal-Style Receipt & Reprints**: Visually represents real-world thermal paper receipt layouts (torn-edge look, served by cashier info, tax/discount details) with direct reprint buttons in the Orders Log table.
 - **Unified Responsive Modals**: Shared modal dialogs automatically transform into mobile slide-up sheets for native-app feel.
 - **Responsive Dashboard**: Viewport-aware metrics cards (1-col mobile, 2-col tablet, 4-col desktop) and dynamically scaled charts (Recharts) for seamless display across devices.
 - **Products & Orders Management**:
