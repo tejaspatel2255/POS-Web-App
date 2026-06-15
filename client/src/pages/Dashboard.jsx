@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,9 +15,11 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import apiClient from '../api/apiClient';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
+import { useThemeStore } from '../store/useThemeStore';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { theme } = useThemeStore();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -44,7 +46,15 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    let active = true;
+    const load = async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+      if (active) {
+        fetchDashboardData();
+      }
+    };
+    load();
+    return () => { active = false; };
   }, []);
 
   if (loading) {
