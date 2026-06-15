@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pos-offline-cache-v1';
+const CACHE_NAME = 'pos-offline-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -38,11 +38,9 @@ self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('supabase.co')) return;
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((response) => {
+    fetch(event.request)
+      .then((response) => {
+        // If we get a valid response, cache it and return it
         if (response.status === 200 && event.request.url.startsWith(self.location.origin)) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -50,11 +48,17 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return response;
-      }).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
-      });
-    })
+      })
+      .catch(() => {
+        // Fallback to cache if network fails
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
+      })
   );
 });
