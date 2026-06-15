@@ -1,8 +1,9 @@
-import React from 'react';
 import { X, Printer, Store } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 
 export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   const cs = receipt.currencySymbol || '₹';
@@ -21,7 +22,7 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
                         border-b border-slate-150 dark:border-slate-850 bg-gradient-to-r 
                         from-indigo-50/50 to-white dark:from-indigo-950/20 dark:to-slate-900 no-print">
           <div>
-            <h2 className="text-sm font-black text-slate-850 dark:text-slate-100">Order Complete</h2>
+            <h2 className="text-sm font-black text-slate-850 dark:text-slate-100">{t('pos.completed_title') || 'Order Complete'}</h2>
             <p className="text-[10px] font-bold text-slate-400">Receipt #{shortReceiptId}</p>
           </div>
           <button 
@@ -90,14 +91,14 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="block text-[10px] text-slate-400 font-bold uppercase">Date & Time</span>
+                  <span className="block text-[10px] text-slate-400 font-bold uppercase">{t('reports.date') || 'Date & Time'}</span>
                   <span className="font-medium text-slate-700 dark:text-slate-300">{receipt.date}</span>
                 </div>
               </div>
 
               {receipt.cashierName && (
                 <p className="text-xs text-slate-400 mb-4">
-                  Served by <span className="text-slate-650 dark:text-slate-305 font-bold">{receipt.cashierName}</span>
+                  {t('pos.served_by') || 'Served by'} <span className="text-slate-650 dark:text-slate-305 font-bold">{receipt.cashierName}</span>
                 </p>
               )}
 
@@ -106,8 +107,8 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
                 <div className="flex justify-between text-[10px] text-slate-400 
                                 font-bold uppercase tracking-wider mb-2 pb-2 
                                 border-b border-slate-250 dark:border-slate-800">
-                  <span>Item</span>
-                  <span>Amount</span>
+                  <span>{t('pos.item') || 'Item'}</span>
+                  <span>{t('pos.amount') || 'Amount'}</span>
                 </div>
 
                 <div className="space-y-2.5">
@@ -133,20 +134,20 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
               <div className="mt-5 pt-4 border-t border-dashed border-slate-250 dark:border-slate-800
                               space-y-2 text-xs">
                 <div className="flex justify-between text-slate-505">
-                  <span>Subtotal</span>
+                  <span>{t('pos.subtotal')}</span>
                   <span className="font-mono font-semibold">{cs}{receipt.subtotal.toFixed(2)}</span>
                 </div>
 
                 {receipt.discount !== undefined && receipt.discount > 0 && (
                   <div className="flex justify-between text-rose-500 font-semibold">
-                    <span>Discount</span>
+                    <span>{t('pos.discount')}</span>
                     <span className="font-mono">-{cs}{receipt.discount.toFixed(2)}</span>
                   </div>
                 )}
 
                 {receipt.taxAmount !== undefined && receipt.taxAmount > 0 && (
                   <div className="flex justify-between text-slate-505">
-                    <span>{receipt.taxLabel || 'Tax'}</span>
+                    <span>{receipt.taxLabel || t('pos.tax') || 'Tax'}</span>
                     <span className="font-mono font-semibold">{cs}{receipt.taxAmount.toFixed(2)}</span>
                   </div>
                 )}
@@ -156,7 +157,7 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
               <div className="mt-3 pt-3 border-t-2 border-slate-850 dark:border-slate-700
                               flex justify-between items-center">
                 <span className="text-xs font-black text-slate-850 dark:text-slate-100 uppercase tracking-wider">
-                  Total Amount
+                  {t('pos.total') || 'Total Amount'}
                 </span>
                 <span className="text-lg font-black text-indigo-650 dark:text-indigo-400 font-mono">
                   {cs}{receipt.total.toFixed(2)}
@@ -167,7 +168,7 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
               <div className="mt-5 pt-4 border-t border-dashed border-slate-250 dark:border-slate-800">
                 <p className="text-[10px] font-bold text-slate-400 uppercase 
                               tracking-wider mb-2">
-                  Payment Method{receipt.payments.length > 1 ? 's' : ''}
+                  {t('pos.payment_method')}{receipt.payments.length > 1 ? 's' : ''}
                 </p>
                 <div className="space-y-1.5">
                   {receipt.payments.map((p, i) => (
@@ -186,7 +187,7 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
                 {receipt.changeAmount !== undefined && receipt.changeAmount > 0 && (
                   <div className="flex justify-between text-xs mt-2.5 pt-2.5 
                                   border-t border-slate-150 dark:border-slate-805">
-                    <span className="text-green-600 dark:text-green-400 font-bold">Change Returned</span>
+                    <span className="text-green-600 dark:text-green-400 font-bold">{t('pos.change_return') || 'Change Returned'}</span>
                     <span className="font-mono font-extrabold text-green-600 dark:text-green-400">
                       {cs}{receipt.changeAmount.toFixed(2)}
                     </span>
@@ -197,7 +198,7 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
               {/* Customer Info (if present) */}
               {receipt.customer && (
                 <div className="mt-4 pt-3 border-t border-slate-150 dark:border-slate-805 text-[10px] text-slate-400 text-center font-semibold">
-                  <span>Customer: {receipt.customer.name} ({receipt.customer.phone})</span>
+                  <span>{t('customers.customer') || 'Customer'}: {receipt.customer.name} ({receipt.customer.phone})</span>
                 </div>
               )}
 
@@ -205,10 +206,10 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
               <div className="mt-6 pt-4 border-t border-dashed border-slate-250 dark:border-slate-800 
                               text-center">
                 <p className="text-xs font-black text-slate-700 dark:text-slate-350">
-                  Thank you for shopping with us!
+                  {t('pos.thank_you_footer') || 'Thank you for shopping with us!'}
                 </p>
                 <p className="text-[10px] text-slate-400 mt-1 font-semibold">
-                  Visit again soon 🛍️
+                  {t('pos.visit_again') || 'Visit again soon'} 🛍️
                 </p>
               </div>
             </div>
@@ -229,7 +230,7 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
             onClick={onClose}
             className="flex-1 rounded-xl !h-11 font-bold text-xs"
           >
-            Close
+            {t('common.cancel') || 'Close'}
           </Button>
           <Button
             variant="primary"
@@ -237,7 +238,7 @@ export function ReceiptModal({ isOpen, onClose, onPrint, receipt }) {
             className="flex-1 rounded-xl !h-11 font-bold text-xs flex items-center justify-center gap-1.5"
           >
             <Printer size={14} />
-            Print Receipt
+            {t('pos.print_receipt')}
           </Button>
         </div>
 

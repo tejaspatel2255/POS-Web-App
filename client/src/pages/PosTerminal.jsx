@@ -28,8 +28,10 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import FormField from '../components/ui/FormField';
 import { ReceiptModal } from '../components/pos/ReceiptModal';
+import { useTranslation } from 'react-i18next';
 
 export default function PosTerminal() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const { currentShift } = useShiftStore();
   const {
@@ -384,15 +386,13 @@ export default function PosTerminal() {
       setIsSubmitting(false);
     }
   };
-
-
   // JSX variable for cart content (shared between mobile bottom sheet and desktop sidebar)
   const cartContent = (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900 overflow-hidden">
       {/* Cart Header */}
       <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
         <h3 className="text-sm font-bold text-slate-900 dark:text-slate-50 flex items-center">
-          Shopping Basket
+          {t('pos.cart')}
           <span className="ml-2 w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-655 dark:text-indigo-400 flex items-center justify-center text-[10px] font-black">
             {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
           </span>
@@ -411,7 +411,7 @@ export default function PosTerminal() {
             onClick={clearCart}
             className="text-xs font-semibold text-slate-400 hover:text-rose-600 transition-colors p-1"
           >
-            Clear
+            {t('pos.clear')}
           </button>
         </div>
       </div>
@@ -437,9 +437,9 @@ export default function PosTerminal() {
               setCustomerSearch('');
               setIsCustomerModalOpen(true);
             }}
-            className="w-full flex items-center justify-center py-2 border border-dashed border-slate-200 dark:border-slate-800 text-slate-450 hover:text-indigo-655 dark:hover:text-indigo-400 rounded-xl hover:bg-slate-100/50 text-xs font-bold cursor-pointer"
+            className="w-full flex items-center justify-center py-2 border border-dashed border-slate-200 dark:border-slate-800 text-slate-450 hover:text-indigo-650 dark:hover:text-indigo-400 rounded-xl hover:bg-slate-100/50 text-xs font-bold cursor-pointer"
           >
-            <UserPlus className="w-4 h-4 mr-2" /> Add Customer to Sale
+            <UserPlus className="w-4 h-4 mr-2" /> {t('pos.select_customer')}
           </button>
         )}
       </div>
@@ -493,8 +493,7 @@ export default function PosTerminal() {
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center p-6">
             <FolderHeart className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-3" />
-            <p className="text-xs text-slate-400 font-bold">Shopping cart is empty</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">Click products on the left to add items</p>
+            <p className="text-xs text-slate-400 font-bold">{t('pos.empty_cart')}</p>
           </div>
         )}
       </div>
@@ -502,14 +501,14 @@ export default function PosTerminal() {
       {/* Cart Totals Summary */}
       <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-2 shrink-0 pb-safe">
         <div className="flex justify-between text-xs text-slate-500 font-semibold">
-          <span>Subtotal</span>
+          <span>{t('pos.subtotal')}</span>
           <span>₹{totals.subtotal.toFixed(2)}</span>
         </div>
 
         {/* Discount Input Group */}
         <div className="pt-1.5 pb-1 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
           <div className="flex justify-between items-center">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Discount (Rs / %)</span>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{t('pos.discount')} (Rs / %)</span>
             <button
               type="button"
               onClick={() => setIsDiscountModalOpen(true)}
@@ -596,7 +595,7 @@ export default function PosTerminal() {
         ))}
 
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end">
-          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Total Payable</span>
+          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{t('pos.total')}</span>
           <span className="text-xl font-black text-slate-900 dark:text-slate-50">
             ₹{totals.total.toFixed(2)}
           </span>
@@ -621,7 +620,7 @@ export default function PosTerminal() {
             disabled={cartItems.length === 0 || !isShiftValid}
             className="flex-2 rounded-xl !h-10 text-xs font-bold"
           >
-            Complete Sale
+            {t('pos.complete_sale')}
           </Button>
         </div>
       </div>
@@ -638,9 +637,9 @@ export default function PosTerminal() {
           <div className="w-16 h-16 bg-rose-950/40 text-rose-500 border border-rose-900/40 rounded-2xl flex items-center justify-center mb-6">
             <Square className="w-8 h-8 fill-current" />
           </div>
-          <h2 className="text-2xl font-black text-white tracking-tight">Shift is Closed</h2>
+          <h2 className="text-2xl font-black text-white tracking-tight">{t('pos.shift_closed') || 'Shift is Closed'}</h2>
           <p className="text-sm font-semibold text-slate-400 mt-2 max-w-sm">
-            Drawer shift is locked. You must Clock In and record the opening cash balance from the topbar button before completing any sales.
+            {t('pos.shift_locked_message') || 'Drawer shift is locked. You must Clock In and record the opening cash balance from the topbar button before completing any sales.'}
           </p>
         </div>
       )}
@@ -657,7 +656,7 @@ export default function PosTerminal() {
                 : 'bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 text-slate-650 dark:text-slate-300'
             }`}
           >
-            All Products
+            {t('pos.all_categories')}
           </button>
           {categories.map((cat) => (
             <button
@@ -685,7 +684,7 @@ export default function PosTerminal() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by product name, SKU, or barcode..."
+            placeholder={t('pos.search_placeholder')}
             className="w-full h-11 pl-11 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           {searchQuery && (
@@ -836,7 +835,7 @@ export default function PosTerminal() {
       {/* Select Product Variant Modal */}
       {isVariantModalOpen && activeProductForVariants && (
         <Modal
-          title={`Choose Variant for ${activeProductForVariants.name}`}
+          title={`${t('pos.choose_variant')} ${activeProductForVariants.name}`}
           onClose={() => setIsVariantModalOpen(false)}
           size="sm"
         >
@@ -848,7 +847,7 @@ export default function PosTerminal() {
                   addToCart(activeProductForVariants, v);
                   setIsVariantModalOpen(false);
                 }}
-                className="w-full flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-indigo-50/20 hover:border-indigo-550 transition-all text-left text-sm font-bold text-slate-800 dark:text-slate-200 cursor-pointer"
+                className="w-full flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-indigo-50/20 hover:border-indigo-550 transition-all text-left text-sm font-bold text-slate-800 dark:text-slate-205 cursor-pointer"
               >
                 <span>{v.name}</span>
                 <span className="text-indigo-600">₹{v.price.toFixed(2)}</span>
@@ -861,7 +860,7 @@ export default function PosTerminal() {
       {/* Recall Held Orders Modal */}
       {isRecallModalOpen && (
         <Modal
-          title="Recall Saved Held Orders"
+          title={t('pos.recall_orders')}
           onClose={() => setIsRecallModalOpen(false)}
           size="md"
         >
@@ -886,10 +885,10 @@ export default function PosTerminal() {
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60">
                       <div>
                         <p className="text-xs font-black text-slate-800 dark:text-slate-200">
-                          {h.customer ? h.customer.name : 'Walk-in Customer'}
+                          {h.customer ? h.customer.name : t('pos.walk_in')}
                         </p>
                         <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                          Held at {new Date(h.time).toLocaleTimeString()} • {h.cartItems.length} {h.cartItems.length === 1 ? 'item' : 'items'}
+                          {t('pos.held_at')} {new Date(h.time).toLocaleTimeString()} • {h.cartItems.length} {h.cartItems.length === 1 ? 'item' : 'items'}
                         </p>
                       </div>
                       <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
@@ -902,7 +901,7 @@ export default function PosTerminal() {
                       {h.cartItems.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-center text-xs">
                           <div className="min-w-0 flex-1">
-                            <span className="font-semibold text-slate-700 dark:text-slate-300 truncate block">
+                            <span className="font-semibold text-slate-700 dark:text-slate-350 truncate block">
                               {item.product.name}
                               {item.variantName && (
                                 <span className="text-indigo-500 font-bold ml-1">({item.variantName})</span>
@@ -939,7 +938,7 @@ export default function PosTerminal() {
                           }}
                           className="!h-8 !px-3 rounded-lg text-xs font-bold"
                         >
-                          Recall
+                          {t('pos.recall_btn') || 'Recall'}
                         </Button>
                         <button
                           onClick={() => removeHeldOrder(h.id)}
@@ -953,7 +952,7 @@ export default function PosTerminal() {
                 );
               })
             ) : (
-              <p className="text-center py-6 text-sm text-slate-400 font-semibold">No held orders saved</p>
+              <p className="text-center py-6 text-sm text-slate-400 font-semibold">{t('pos.no_held_orders')}</p>
             )}
           </div>
         </Modal>
@@ -962,7 +961,7 @@ export default function PosTerminal() {
       {/* Customer Attach / Quick Create Modal */}
       {isCustomerModalOpen && (
         <Modal
-          title="Attach Customer"
+          title={t('pos.attach_customer')}
           onClose={() => setIsCustomerModalOpen(false)}
           size="md"
         >
@@ -970,13 +969,13 @@ export default function PosTerminal() {
             {/* Search list */}
             <div>
               <label className="text-xs font-bold text-slate-700 dark:text-slate-350 uppercase mb-2 block">
-                Find Existing Customer
+                {t('pos.find_customer')}
               </label>
               <input
                 type="text"
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
-                placeholder="Search by customer name or phone number..."
+                placeholder={t('common.search') || 'Search...'}
                 className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <div className="mt-3 max-h-40 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 pr-1">
@@ -1006,7 +1005,7 @@ export default function PosTerminal() {
 
             <div className="h-px bg-slate-200 dark:bg-slate-800 relative">
               <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-slate-900 px-3 text-[10px] font-bold text-slate-400 uppercase">
-                Or Quick Create
+                {t('pos.or_quick_create')}
               </span>
             </div>
 
@@ -1046,10 +1045,10 @@ export default function PosTerminal() {
 
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
                 <Button variant="secondary" onClick={() => setIsCustomerModalOpen(false)} className="w-full sm:w-auto">
-                  Close
+                  {t('common.cancel') || 'Close'}
                 </Button>
                 <Button type="submit" variant="primary" className="w-full sm:w-auto">
-                  Save & Attach
+                  {t('pos.save_attach') || 'Save & Attach'}
                 </Button>
               </div>
             </form>
@@ -1060,14 +1059,14 @@ export default function PosTerminal() {
       {/* Apply Order-level Discount Modal */}
       {isDiscountModalOpen && (
         <Modal
-          title="Apply Order Discount"
+          title={t('pos.apply_discount') || 'Apply Order Discount'}
           onClose={() => setIsDiscountModalOpen(false)}
           size="sm"
         >
           <div className="space-y-3">
             {/* Custom Discount Input */}
             <div className="p-3 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl space-y-2.5">
-              <h5 className="text-xs font-bold text-slate-700 dark:text-slate-350">Custom Discount</h5>
+              <h5 className="text-xs font-bold text-slate-700 dark:text-slate-350">{t('pos.custom_discount') || 'Custom Discount'}</h5>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
@@ -1127,7 +1126,7 @@ export default function PosTerminal() {
               }}
               className="w-full flex items-center justify-between p-3 border border-dashed border-rose-200 dark:border-rose-900 text-rose-500 rounded-xl hover:bg-rose-50/20 transition-all text-sm font-bold cursor-pointer"
             >
-              Remove Active Discount
+              {t('pos.remove_discount') || 'Remove Active Discount'}
             </button>
             {discountTypes.map((d) => (
               <button
@@ -1146,7 +1145,7 @@ export default function PosTerminal() {
                   <p>{d.name}</p>
                   {d.requires_approval && (
                     <span className="text-[10px] text-amber-500 font-bold bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded">
-                      Manager Approval Required
+                      {t('pos.manager_approval') || 'Manager Approval Required'}
                     </span>
                   )}
                 </div>
@@ -1162,22 +1161,22 @@ export default function PosTerminal() {
       {/* Checkout and Payment Confirmation Modal */}
       {isCheckoutModalOpen && (
         <Modal
-          title="Complete Checkout Payment"
+          title={t('pos.checkout_title')}
           onClose={() => setIsCheckoutModalOpen(false)}
           size="lg"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Summary */}
             <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
-              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-250 border-b pb-2 mb-2">Order Summary</h4>
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-250 border-b pb-2 mb-2">{t('pos.order_summary') || 'Order Summary'}</h4>
               <div className="space-y-2 text-xs text-slate-500">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span>{t('pos.subtotal')}</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300">₹{totals.subtotal.toFixed(2)}</span>
                 </div>
                 {totals.discountAmount > 0 && (
                   <div className="flex justify-between text-rose-500">
-                    <span>Discount</span>
+                    <span>{t('pos.discount')}</span>
                     <span className="font-bold">-₹{totals.discountAmount.toFixed(2)}</span>
                   </div>
                 )}
@@ -1188,7 +1187,7 @@ export default function PosTerminal() {
                   </div>
                 ))}
                 <div className="flex justify-between text-sm font-black text-slate-900 dark:text-slate-50 pt-2 border-t border-slate-200 dark:border-slate-800">
-                  <span>Total Due</span>
+                  <span>{t('pos.total')}</span>
                   <span>₹{totals.total.toFixed(2)}</span>
                 </div>
               </div>
@@ -1198,7 +1197,7 @@ export default function PosTerminal() {
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
                   <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center">
                     <Sparkles className="w-4 h-4 mr-1 text-indigo-500" />
-                    Loyalty Reward Points
+                    {t('pos.loyalty_reward_points') || 'Loyalty Reward Points'}
                   </p>
                   <p className="text-[10px] text-slate-400">
                     Points available: {customer.loyalty_points} (Value: ₹{(customer.loyalty_points * loyaltyRules.redeem).toFixed(2)})
@@ -1243,11 +1242,11 @@ export default function PosTerminal() {
 
             {/* Payments input details */}
             <div className="space-y-4">
-              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-250">Payment Split Settings</h4>
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-250">{t('pos.split_settings')}</h4>
               <div className="space-y-3">
                 {checkoutPayments.map((p, idx) => (
                   <div key={idx} className="flex items-end space-x-2">
-                    <FormField label="Method" className="flex-1">
+                    <FormField label={t('pos.payment_method')} className="flex-1">
                       <select
                         value={p.method}
                         onChange={(e) => handlePaymentMethodChange(idx, 'method', e.target.value)}
@@ -1261,7 +1260,7 @@ export default function PosTerminal() {
                       </select>
                     </FormField>
 
-                    <FormField label="Amount (₹)" className="w-28">
+                    <FormField label={`${t('pos.amount_tendered')} (₹)`} className="w-28">
                       <input
                         type="number"
                         step="0.01"
@@ -1288,14 +1287,14 @@ export default function PosTerminal() {
               {/* Remaining indicator */}
               {remaining > 0.01 && (
                 <p className="text-xs text-amber-600 mt-1 font-bold">
-                  Remaining to allocate: ₹{remaining.toFixed(2)}
+                  {t('pos.remaining_allocate')}: ₹{remaining.toFixed(2)}
                 </p>
               )}
 
               {/* Overallocated indicator */}
               {paymentSum > targetAmount && (
                 <p className="text-xs text-rose-500 mt-1 font-bold">
-                  Overallocated by: ₹{(paymentSum - targetAmount).toFixed(2)}
+                  {t('pos.overallocated')}: ₹{(paymentSum - targetAmount).toFixed(2)}
                 </p>
               )}
 
@@ -1303,15 +1302,15 @@ export default function PosTerminal() {
               <button
                 onClick={addSplitPayment}
                 disabled={remaining <= 0.01}
-                className="inline-flex items-center text-xs font-bold text-indigo-650 hover:text-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="inline-flex items-center text-xs font-bold text-indigo-655 hover:text-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" /> Add Split Payment Method
+                <Plus className="w-3.5 h-3.5 mr-1" /> {t('pos.add_split')}
               </button>
 
               {/* Cash Change Drawer calculation */}
               {hasCash && (
                 <div className="pt-2">
-                  <FormField label="Cash Amount Tendered (₹)" required>
+                  <FormField label={t('pos.cash_tendered_label')} required>
                     <input
                       type="number"
                       step="0.01"
@@ -1327,7 +1326,7 @@ export default function PosTerminal() {
                   
                   {isUnderpaid ? (
                     <p className="text-xs text-rose-500 mt-2 font-bold">
-                      Insufficient amount (Cash portion is ₹{cashPaymentAmount.toFixed(2)})
+                      {t('pos.insufficient_cash')} (Cash portion is ₹{cashPaymentAmount.toFixed(2)})
                     </p>
                   ) : (
                     <div className={`mt-2.5 p-3.5 rounded-xl border font-bold text-xs flex justify-between items-center ${
@@ -1335,7 +1334,7 @@ export default function PosTerminal() {
                         ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30'
                         : 'bg-slate-50 dark:bg-slate-900/20 text-slate-500 border-slate-100 dark:border-slate-800'
                     }`}>
-                      <span>Change to Return</span>
+                      <span>{t('pos.change_return')}</span>
                       <span className="text-sm font-black">₹{cashChange.toFixed(2)}</span>
                     </div>
                   )}
@@ -1348,7 +1347,7 @@ export default function PosTerminal() {
                   onClick={() => setIsCheckoutModalOpen(false)}
                   className="w-full sm:flex-1 py-3 sm:py-2 text-base sm:text-sm font-bold"
                 >
-                  Back
+                  {t('common.cancel') || 'Back'}
                 </Button>
                 <Button
                   variant="primary"
