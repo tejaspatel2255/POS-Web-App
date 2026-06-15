@@ -10,6 +10,7 @@ import {
   Printer,
   RefreshCw,
   AlertTriangle,
+  Download,
 } from 'lucide-react';
 import {
   LineChart,
@@ -28,8 +29,11 @@ import toast from 'react-hot-toast';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
 import FormField from '../components/ui/FormField';
+import { useTranslation } from 'react-i18next';
+import { exportToCSV } from '../utils/csvExport';
 
 export default function Reports() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('sales');
   const [salesData, setSalesData] = useState(null);
   const [inventoryData, setInventoryData] = useState(null);
@@ -113,12 +117,42 @@ export default function Reports() {
     w.print();
   };
 
+  const handleExportCSV = () => {
+    if (activeTab === 'sales' && salesData) {
+      // Export sales daily trend
+      const dailyTrend = salesData.chartData.map(day => ({
+        Date: day.date,
+        SalesAmount: day.sales
+      }));
+      exportToCSV(dailyTrend, 'sales_performance_report');
+    } else if (activeTab === 'inventory' && inventoryData) {
+      // Export inventory valuation list
+      const valuationList = inventoryData.items.map(item => ({
+        ProductName: item.name,
+        SKU: item.sku,
+        Quantity: item.quantity,
+        CostPrice: item.cost || 0,
+        RetailPrice: item.price,
+        ValuationCost: (item.quantity * (item.cost || 0)).toFixed(2),
+        ValuationRetail: item.valuationRetail.toFixed(2)
+      }));
+      exportToCSV(valuationList, 'inventory_valuation_report');
+    }
+  };
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <PageHeader title="Business Intelligence Reports">
-        <Button variant="secondary" icon={RefreshCw} onClick={fetchReports}>
-          Reload
-        </Button>
+      <PageHeader title={t('reports.title')}>
+        <div className="flex space-x-2">
+          {((activeTab === 'sales' && salesData) || (activeTab === 'inventory' && inventoryData)) && (
+            <Button variant="secondary" icon={Download} onClick={handleExportCSV}>
+              {t('common.export_csv')}
+            </Button>
+          )}
+          <Button variant="secondary" icon={RefreshCw} onClick={fetchReports}>
+            Reload
+          </Button>
+        </div>
       </PageHeader>
 
       {/* Tabs */}
@@ -128,20 +162,20 @@ export default function Reports() {
           className={`h-12 px-6 text-sm font-bold flex items-center border-b-2 transition-all cursor-pointer ${
             activeTab === 'sales'
               ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-600'
+              : 'border-transparent text-slate-400 hover:text-slate-655'
           }`}
         >
-          <TrendingUp className="w-4 h-4 mr-2" /> Sales & Profit Analytics
+          <TrendingUp className="w-4 h-4 mr-2" /> {t('reports.sales_analytics')}
         </button>
         <button
           onClick={() => setActiveTab('inventory')}
           className={`h-12 px-6 text-sm font-bold flex items-center border-b-2 transition-all cursor-pointer ${
             activeTab === 'inventory'
               ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-600'
+              : 'border-transparent text-slate-400 hover:text-slate-655'
           }`}
         >
-          <Layers className="w-4 h-4 mr-2" /> Inventory Valuation
+          <Layers className="w-4 h-4 mr-2" /> {t('reports.inventory_valuation')}
         </button>
       </div>
 

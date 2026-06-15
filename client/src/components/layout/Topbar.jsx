@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Play, Square, User, Menu } from 'lucide-react';
+import { LogOut, Play, Square, Menu, Sun, Moon, Globe } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useShiftStore } from '../../store/useShiftStore';
 import { useLayoutStore } from '../../store/useLayoutStore';
+import { useThemeStore } from '../../store/useThemeStore';
+import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
 import FormField from '../ui/FormField';
@@ -11,6 +13,8 @@ export default function Topbar() {
   const { user, logout } = useAuthStore();
   const { currentShift, openShift, closeShift, fetchCurrentShift } = useShiftStore();
   const { toggleSidebar } = useLayoutStore();
+  const { theme, toggleTheme } = useThemeStore();
+  const { t, i18n } = useTranslation();
 
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState('');
@@ -52,25 +56,25 @@ export default function Topbar() {
 
   return (
     <>
-      <header className="h-14 lg:h-16 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-4 lg:px-6 z-30 sticky top-0 shadow-sm">
+      <header className="h-14 lg:h-16 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-4 lg:px-6 z-30 sticky top-0 shadow-sm transition-colors duration-200">
         {/* Left Side Hamburger + Info */}
         <div className="flex items-center space-x-3 min-w-0">
           {/* Hamburger (mobile/tablet only) */}
           <button
             onClick={toggleSidebar}
-            className="flex lg:hidden items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer shrink-0"
+            className="flex lg:hidden items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer shrink-0 transition-colors"
           >
             <Menu className="w-6 h-6" />
           </button>
           
           <span 
-            className="text-xs lg:text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-900/30 truncate max-w-[150px] lg:max-w-none"
+            className="text-xs lg:text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-900/30 truncate max-w-[150px] lg:max-w-none transition-colors"
             title={outletName}
           >
             {displayOutletName}
           </span>
           {user.outlet_id?.address && (
-            <span className="text-xs font-semibold text-slate-400 hidden lg:inline truncate max-w-xs">
+            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 hidden lg:inline truncate max-w-xs transition-colors">
               {user.outlet_id.address}
             </span>
           )}
@@ -107,7 +111,32 @@ export default function Topbar() {
             </Button>
           )}
 
-          <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block transition-colors" />
+
+          {/* Premium Language Dropdown */}
+          <div className="relative flex items-center bg-slate-50 dark:bg-slate-800 rounded-xl px-2 py-1 border border-slate-100 dark:border-slate-700 transition-colors">
+            <Globe className="w-3.5 h-3.5 text-slate-400 mr-1" />
+            <select
+              value={i18n.language}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              className="bg-transparent text-slate-700 dark:text-slate-200 text-xs font-bold focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="en" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">EN</option>
+              <option value="hi" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">हिन्दी</option>
+              <option value="gu" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ગુજ</option>
+            </select>
+          </div>
+
+          {/* Premium Theme Switcher */}
+          <button
+            onClick={toggleTheme}
+            className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-all duration-200"
+            title="Toggle Theme"
+          >
+            {theme === 'light' ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />}
+          </button>
+
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block transition-colors" />
 
           {/* User Profile Info Dropdown Trigger */}
           <div className="relative">
@@ -115,7 +144,7 @@ export default function Topbar() {
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center space-x-1.5 text-slate-700 dark:text-slate-200 hover:opacity-80 cursor-pointer focus:outline-none"
             >
-              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs">
+              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xs transition-colors">
                 {user.name ? user.name[0].toUpperCase() : 'U'}
               </div>
               <span className="text-xs lg:text-sm font-bold truncate max-w-[80px] lg:max-w-[120px] hidden sm:inline">
@@ -125,8 +154,8 @@ export default function Topbar() {
 
             {/* Dropdown Menu (Desktop) */}
             {dropdownOpen && (
-              <div className="hidden md:block absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-50 py-2">
-                <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-805">
+              <div className="hidden md:block absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-50 py-2 transition-colors duration-200">
+                <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800">
                   <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{user.name}</p>
                   <p className="text-[10px] text-slate-500 capitalize">{user.role}</p>
                 </div>
@@ -135,10 +164,10 @@ export default function Topbar() {
                     setDropdownOpen(false);
                     logout();
                   }}
-                  className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center space-x-2"
+                  className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center space-x-2 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span>Log Out</span>
+                  <span>{t('nav.logout')}</span>
                 </button>
               </div>
             )}
@@ -151,10 +180,10 @@ export default function Topbar() {
                 onClick={() => setDropdownOpen(false)}
                 className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-40 md:hidden"
               />
-              <div className="fixed inset-x-0 bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-850 rounded-t-2xl shadow-2xl z-50 p-5 md:hidden space-y-4 pb-8 transition-transform duration-300">
+              <div className="fixed inset-x-0 bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-t-2xl shadow-2xl z-50 p-5 md:hidden space-y-4 pb-8 transition-all duration-350">
                 <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-2" />
                 <div className="flex items-center space-x-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm shrink-0 transition-colors">
                     {user.name ? user.name[0].toUpperCase() : 'U'}
                   </div>
                   <div>
@@ -167,10 +196,10 @@ export default function Topbar() {
                     setDropdownOpen(false);
                     logout();
                   }}
-                  className="w-full h-11 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 text-rose-600 dark:text-rose-400 rounded-xl text-sm font-semibold flex items-center justify-center space-x-2"
+                  className="w-full h-11 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 text-rose-600 dark:text-rose-400 rounded-xl text-sm font-semibold flex items-center justify-center space-x-2 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4.5 h-4.5" />
-                  <span>Log Out</span>
+                  <span>{t('nav.logout')}</span>
                 </button>
               </div>
             </>
@@ -186,7 +215,7 @@ export default function Topbar() {
           size="sm"
         >
           <form onSubmit={handleShiftAction} className="space-y-4">
-            <p className="text-xs sm:text-sm text-slate-505 dark:text-slate-400">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 transition-colors">
               {!currentShift
                 ? 'Enter the starting cash amount currently in the register drawer to open the shift.'
                 : 'Enter the actual final cash count currently in the drawer to close the shift.'}
@@ -203,7 +232,7 @@ export default function Topbar() {
                 value={cashAmount}
                 onChange={(e) => setCashAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all"
               />
             </FormField>
 
@@ -214,7 +243,7 @@ export default function Topbar() {
                 disabled={modalLoading}
                 className="flex-1"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"

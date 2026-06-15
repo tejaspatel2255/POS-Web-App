@@ -9,6 +9,7 @@ import {
   Printer,
   ChevronRight,
   RefreshCw,
+  Download,
 } from 'lucide-react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useAuthStore } from '../store/useAuthStore';
@@ -22,8 +23,11 @@ import Modal from '../components/ui/Modal';
 import FormField from '../components/ui/FormField';
 import { ReceiptModal } from '../components/pos/ReceiptModal';
 import { supabase } from '../utils/supabaseClient';
+import { useTranslation } from 'react-i18next';
+import { exportToCSV } from '../utils/csvExport';
 
 export default function OrdersLog() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const isMobile = useMediaQuery('(max-width: 767px)');
   const [orders, setOrders] = useState([]);
@@ -244,10 +248,27 @@ export default function OrdersLog() {
     }
   };
 
+  const handleExportCSV = () => {
+    const dataToExport = orders.map(order => ({
+      OrderID: order._id || order.id,
+      Cashier: order.cashier_id?.name || 'Unknown',
+      Customer: order.customer_id?.name || 'Walk-in Customer',
+      CustomerPhone: order.customer_id?.phone || '',
+      Date: new Date(order.createdAt).toLocaleString(),
+      Status: order.status,
+      Subtotal: order.subtotal || 0,
+      Discount: order.discount_amount || 0,
+      Tax: order.tax_amount || 0,
+      Total: order.total || 0,
+      Source: order.source || 'online'
+    }));
+    exportToCSV(dataToExport, 'orders_log');
+  };
+
   // Data Columns for Orders table
   const columns = [
     {
-      header: 'Order ID',
+      header: t('orders.order_id') || 'Order ID',
       key: '_id',
       render: (row) => (
         <span className="font-bold text-indigo-600 dark:text-indigo-400">
@@ -256,34 +277,34 @@ export default function OrdersLog() {
       ),
     },
     {
-      header: 'Cashier',
+      header: t('orders.cashier') || 'Cashier',
       key: 'cashier_id',
       render: (row) => <span>{row.cashier_id?.name || 'Unknown'}</span>,
     },
     {
-      header: 'Customer',
+      header: t('orders.customer') || 'Customer',
       key: 'customer_id',
       render: (row) => (
         <span>{row.customer_id?.name || <span className="text-slate-400 italic">Walk-in</span>}</span>
       ),
     },
     {
-      header: 'Date & Time',
+      header: t('orders.date') || 'Date & Time',
       key: 'createdAt',
       render: (row) => <span>{new Date(row.createdAt).toLocaleString()}</span>,
     },
     {
-      header: 'Status',
+      header: t('common.status') || 'Status',
       key: 'status',
       render: (row) => <StatusBadge status={row.status} />,
     },
     {
-      header: 'Total Paid',
+      header: t('orders.total') || 'Total Paid',
       key: 'total',
       render: (row) => <span className="font-black">₹{row.total.toFixed(2)}</span>,
     },
     {
-      header: 'Actions',
+      header: t('common.actions') || 'Actions',
       key: 'actions',
       render: (row) => (
         <div className="flex items-center space-x-2">
@@ -296,19 +317,19 @@ export default function OrdersLog() {
             }}
             className="!h-8 !px-2.5 rounded-lg text-xs"
           >
-            View
+            {t('common.view') || 'View'}
           </Button>
           <button
             onClick={() => handlePrintReceipt(row._id)}
             disabled={printingOrderId === row._id}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 border border-indigo-200 bg-indigo-50 dark:bg-indigo-950/20 dark:border-indigo-900/40 rounded-lg text-xs font-bold text-indigo-705 dark:text-indigo-400 hover:bg-indigo-100/70 dark:hover:bg-indigo-950/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 border border-indigo-200 bg-indigo-50 dark:bg-indigo-950/20 dark:border-indigo-900/40 rounded-lg text-xs font-bold text-indigo-750 dark:text-indigo-400 hover:bg-indigo-100/70 dark:hover:bg-indigo-950/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {printingOrderId === row._id ? (
               <div className="w-3.5 h-3.5 border-2 border-indigo-300 border-t-indigo-700 rounded-full animate-spin" />
             ) : (
               <Printer size={13} />
             )}
-            Print
+            {t('pos.print_receipt') || 'Print'}
           </button>
         </div>
       ),
@@ -320,7 +341,10 @@ export default function OrdersLog() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <PageHeader title="Orders History Log">
+      <PageHeader title={t('nav.orders')}>
+        <Button variant="secondary" icon={Download} onClick={handleExportCSV}>
+          {t('common.export_csv')}
+        </Button>
       </PageHeader>
 
       {/* Filter and Search controls */}

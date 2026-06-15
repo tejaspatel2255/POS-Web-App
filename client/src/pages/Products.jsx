@@ -5,6 +5,7 @@ import {
   Edit,
   Trash2,
   Upload,
+  Download,
   Search,
   RefreshCw,
   FolderOpen,
@@ -20,8 +21,11 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import FormField from '../components/ui/FormField';
 import StatusBadge from '../components/ui/StatusBadge';
+import { useTranslation } from 'react-i18next';
+import { exportToCSV } from '../utils/csvExport';
 
 export default function Products() {
+  const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const isMobile = useMediaQuery('(max-width: 767px)');
   const [categories, setCategories] = useState([]);
@@ -243,6 +247,21 @@ export default function Products() {
     setVariants(variants.filter((_, i) => i !== idx));
   };
 
+  const handleExportCSV = () => {
+    const dataToExport = filteredProducts.map(p => ({
+      [t('products.name')]: p.name,
+      [t('products.sku')]: p.sku,
+      [t('products.barcode')]: p.barcode || '',
+      [t('products.category')]: p.category_id?.name || 'Uncategorized',
+      [t('products.base_price')]: p.base_price,
+      [t('products.cost_price')]: p.cost_price,
+      [t('inventory.current_stock')]: p.stock,
+      [t('products.min_stock')]: p.stock_threshold,
+      Status: p.status
+    }));
+    exportToCSV(dataToExport, 'product_catalog');
+  };
+
   // Filter lists locally
   const filteredProducts = products.filter((p) => {
     const catId = p.category_id?.id || p.category_id?._id;
@@ -264,7 +283,7 @@ export default function Products() {
 
   const columns = [
     {
-      header: 'Product Name',
+      header: t('products.name'),
       key: 'name',
       render: (row) => (
         <div>
@@ -278,12 +297,12 @@ export default function Products() {
       ),
     },
     {
-      header: 'SKU',
+      header: t('products.sku'),
       key: 'sku',
       render: (row) => <span className="font-semibold text-xs">{row.sku}</span>,
     },
     {
-      header: 'Category',
+      header: t('products.category'),
       key: 'category_id',
       render: (row) => (
         <span
@@ -295,12 +314,12 @@ export default function Products() {
       ),
     },
     {
-      header: 'Retail Price',
+      header: t('products.base_price'),
       key: 'base_price',
       render: (row) => <span className="font-extrabold">₹{row.base_price.toFixed(2)}</span>,
     },
     {
-      header: 'Stock',
+      header: t('inventory.current_stock'),
       key: 'stock',
       render: (row) => (
         <span
@@ -318,7 +337,7 @@ export default function Products() {
       render: (row) => <StatusBadge status={row.status} />,
     },
     {
-      header: 'Actions',
+      header: t('common.actions'),
       key: 'actions',
       render: (row) => (
         <div className="flex space-x-2">
@@ -337,17 +356,18 @@ export default function Products() {
         </div>
       ),
     },
-  ];
-
-  return (
+  ];  return (
     <div className="space-y-6 p-4 sm:p-6">
-      <PageHeader title="Product Catalog Management">
+      <PageHeader title={t('products.title')}>
         <div className="space-x-2 flex">
           <Button variant="secondary" icon={Upload} onClick={() => setIsImportOpen(true)}>
-            Import CSV
+            {t('common.import_csv')}
+          </Button>
+          <Button variant="secondary" icon={Download} onClick={handleExportCSV}>
+            {t('common.export_csv')}
           </Button>
           <Button variant="primary" icon={Plus} onClick={openAddForm}>
-            Add Product
+            {t('products.add_product')}
           </Button>
         </div>
       </PageHeader>
@@ -362,7 +382,7 @@ export default function Products() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search SKU, name, barcode..."
+              placeholder={t('pos.search_placeholder')}
               className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -370,9 +390,9 @@ export default function Products() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="h-10 px-3 w-full sm:w-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-700 dark:text-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="h-10 px-3 w-full sm:w-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-700 dark:text-slate-350 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <option value="all">All Categories</option>
+            <option value="all">{t('pos.all_categories')}</option>
             {categories.map((c) => (
               <option key={c._id} value={c._id}>
                 {c.name}
@@ -391,13 +411,13 @@ export default function Products() {
               variant="danger"
               icon={Trash2}
               onClick={handleBulkDelete}
-              className="!h-8 !px-2.5 rounded-lg text-xs"
             >
               Delete Bulk
             </Button>
           </div>
         )}
-      </div>      {/* Grid List Table / Cards */}
+      </div>
+      {/* Grid List Table / Cards */}
       <div className="block md:hidden space-y-3">
         {loading ? (
           <div className="flex justify-center py-12">

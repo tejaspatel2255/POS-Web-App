@@ -5,8 +5,24 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TejasPOS - Premium Retail Point of Sale</title>
+    <!-- Google Fonts for Multi-Language Support -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Non-Flashing Theme Initialization Script -->
+    <script>
+      (function () {
+        const theme = localStorage.getItem('pos-theme') || 'light';
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
   </head>
-  <body>
+  <body class="font-sans antialiased text-slate-900 bg-slate-50 dark:text-slate-100 dark:bg-slate-950">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

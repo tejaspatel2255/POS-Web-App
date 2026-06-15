@@ -15,12 +15,14 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useLayoutStore } from '../../store/useLayoutStore';
+import { useTranslation } from 'react-i18next';
 
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { PendingBadge } from '../offline/PendingBadge';
 
 export default function Sidebar() {
   const { user } = useAuthStore();
+  const { t } = useTranslation();
   const location = useLocation();
   const { sidebarOpen, sidebarCollapsed, toggleCollapse } = useLayoutStore();
   const isTablet = useMediaQuery('(min-width: 768px) and (max-width: 1023px)');
@@ -29,55 +31,55 @@ export default function Sidebar() {
 
   const menuItems = [
     {
-      name: 'Dashboard',
+      name: t('nav.dashboard'),
       path: '/dashboard',
       icon: LayoutDashboard,
       roles: ['admin', 'manager'],
     },
     {
-      name: 'POS Terminal',
+      name: t('nav.pos'),
       path: '/pos',
       icon: MonitorPlay,
       roles: ['admin', 'manager', 'cashier'],
     },
     {
-      name: 'Orders Log',
+      name: t('nav.orders'),
       path: '/orders',
       icon: FileText,
       roles: ['admin', 'manager', 'cashier'],
     },
     {
-      name: 'Products',
+      name: t('nav.products'),
       path: '/products',
       icon: ShoppingBag,
       roles: ['admin', 'manager', 'cashier'],
     },
     {
-      name: 'Categories',
+      name: t('nav.categories'),
       path: '/categories',
       icon: FolderOpen,
       roles: ['admin', 'manager', 'cashier'],
     },
     {
-      name: 'Inventory',
+      name: t('nav.inventory'),
       path: '/inventory',
       icon: Boxes,
       roles: ['admin', 'manager', 'cashier'],
     },
     {
-      name: 'Customers CRM',
+      name: t('nav.customers'),
       path: '/customers',
       icon: Users,
       roles: ['admin', 'manager', 'cashier'],
     },
     {
-      name: 'Reports',
+      name: t('nav.reports'),
       path: '/reports',
       icon: BarChart3,
       roles: ['admin', 'manager'],
     },
     {
-      name: 'Settings',
+      name: t('nav.settings'),
       path: '/settings',
       icon: Settings,
       roles: ['admin', 'manager', 'cashier'],

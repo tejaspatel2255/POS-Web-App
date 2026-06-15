@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   TrendingUp,
   ShoppingCart,
@@ -7,6 +8,7 @@ import {
   Package,
   ArrowRight,
   RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useMediaQuery } from '../hooks/useMediaQuery';
@@ -16,15 +18,24 @@ import Button from '../components/ui/Button';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [lowStockAlerts, setLowStockAlerts] = useState([]);
   const isMobile = useMediaQuery('(max-width: 767px)');
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/api/reports/sales');
-      setData(response.data);
+      const [reportsRes, productsRes] = await Promise.all([
+        apiClient.get('/api/reports/sales'),
+        apiClient.get('/api/products')
+      ]);
+      setData(reportsRes.data);
+      
+      const allProducts = productsRes.data || [];
+      const alerts = allProducts.filter(p => p.stock <= (p.stock_threshold !== undefined ? p.stock_threshold : 5));
+      setLowStockAlerts(alerts);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
@@ -43,7 +54,7 @@ export default function Dashboard() {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
-        <span className="text-sm font-semibold text-slate-500">Loading dashboard data...</span>
+        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{t('common.loading')}</span>
       </div>
     );
   }
@@ -52,19 +63,19 @@ export default function Dashboard() {
   const recentOrders = orders.slice(0, 5);
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      <PageHeader title="Overview Dashboard">
+    <div className="space-y-6 p-4 sm:p-6 transition-colors duration-200">
+      <PageHeader title={t('dashboard.title')}>
         <Button variant="secondary" icon={RefreshCw} onClick={fetchDashboardData}>
-          Reload
+          {t('common.actions')}
         </Button>
       </PageHeader>
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {/* Total Sales Card */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between transition-colors">
           <div>
-            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{t('dashboard.total_sales')}</p>
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
               ₹{(metrics.totalRevenue || 0).toFixed(2)}
             </h3>
@@ -75,9 +86,9 @@ export default function Dashboard() {
         </div>
 
         {/* Orders Count Card */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between transition-colors">
           <div>
-            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Orders Count</p>
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{t('dashboard.transactions')}</p>
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
               {metrics.orderCount || 0}
             </h3>
@@ -88,9 +99,9 @@ export default function Dashboard() {
         </div>
 
         {/* Avg Order Value Card */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between transition-colors">
           <div>
-            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Avg Order Value</p>
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{t('dashboard.avg_bill')}</p>
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
               ₹{(metrics.averageOrderValue || 0).toFixed(2)}
             </h3>
@@ -101,44 +112,80 @@ export default function Dashboard() {
         </div>
 
         {/* Gross Profit Card */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between transition-colors">
           <div>
-            <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Profit</p>
+            <p className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{t('reports.net_profit')}</p>
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-50 mt-1">
               ₹{(metrics.grossProfit || 0).toFixed(2)}
             </h3>
           </div>
-          <div className="p-3 bg-purple-50 dark:bg-purple-950/40 text-purple-650 dark:text-purple-400 rounded-xl">
+          <div className="p-3 bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 rounded-xl">
             <Package className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
       </div>
 
+      {/* Critical Low Stock Alerts Widget */}
+      <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-rose-100 dark:border-rose-950/30 shadow-sm transition-colors space-y-4">
+        <div className="flex items-center space-x-2 text-rose-600 dark:text-rose-400">
+          <AlertTriangle className="w-5 h-5" />
+          <h4 className="font-bold text-sm sm:text-base">{t('dashboard.low_stock_alerts')}</h4>
+          <span className="text-xs bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full font-bold">
+            {lowStockAlerts.length}
+          </span>
+        </div>
+
+        {lowStockAlerts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {lowStockAlerts.slice(0, 6).map((product) => (
+              <div 
+                key={product._id} 
+                onClick={() => navigate('/inventory')}
+                className="p-3 bg-slate-50 dark:bg-slate-850 hover:bg-rose-50/50 dark:hover:bg-rose-950/10 rounded-xl border border-slate-150 dark:border-slate-800 transition-all cursor-pointer flex justify-between items-center"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{product.name}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">SKU: {product.sku}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-black text-rose-600 dark:text-rose-400">
+                    {product.stock} / {product.stock_threshold || 5}
+                  </span>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase">Stock</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400 font-semibold">{t('dashboard.no_alerts')}</p>
+        )}
+      </div>
+
       {/* Main Charts & Breakdown row */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Sales Chart Card */}
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-3 space-y-4">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-3 space-y-4 transition-colors">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-50">Sales Performance</h4>
+            <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-50">{t('dashboard.sales_trend')}</h4>
             <span className="text-xs font-semibold text-slate-400">Past 30 Days</span>
           </div>
           <div style={{ height: isMobile ? 200 : 300 }} className="w-full">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#E2E8F0'} />
                   <XAxis dataKey="date" stroke="#94A3B8" fontSize={10} tickLine={false} />
                   <YAxis stroke="#94A3B8" fontSize={10} tickLine={false} />
                   <Tooltip
                     contentStyle={{
-                      background: '#0F172A',
+                      background: theme === 'dark' ? '#1E293B' : '#0F172A',
                       border: 'none',
-                      borderRadius: '8px',
+                      borderRadius: '12px',
                       color: '#fff',
                       fontSize: '11px',
                     }}
                   />
-                  <Line type="monotone" dataKey="sales" stroke="#4F46E5" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="sales" stroke="#6366F1" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -150,7 +197,7 @@ export default function Dashboard() {
         </div>
 
         {/* Top Products Card */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-2 space-y-4">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm lg:col-span-2 space-y-4 transition-colors">
           <h4 className="text-base font-bold text-slate-900 dark:text-slate-50">Top Selling Products</h4>
           <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
             {topProducts.length > 0 ? (
@@ -175,9 +222,9 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Activity Row */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4 transition-colors">
         <div className="flex items-center justify-between">
-          <h4 className="text-base font-bold text-slate-900 dark:text-slate-50">Recent Orders</h4>
+          <h4 className="text-base font-bold text-slate-900 dark:text-slate-50">{t('dashboard.recent_orders')}</h4>
           <button
             onClick={() => navigate('/orders')}
             className="inline-flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
