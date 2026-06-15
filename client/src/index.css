@@ -1,6 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&family=Noto+Sans+Gujarati:wght@400;700&family=Noto+Sans:wght@400;700&display=swap');
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&family=Noto+Sans+Gujarati:wght@400;700&family=Noto+Sans:wght@400;700&display=swap');
 
 @theme {
   --font-sans: "Noto Sans", "Noto Sans Devanagari", "Noto Sans Gujarati", sans-serif;
